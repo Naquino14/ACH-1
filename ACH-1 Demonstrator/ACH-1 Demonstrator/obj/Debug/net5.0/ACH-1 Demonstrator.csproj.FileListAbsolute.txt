@@ -1,0 +1,16 @@
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.exe
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.deps.json
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.runtimeconfig.json
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.runtimeconfig.dev.json
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.dll
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ref\ACH-1 Demonstrator.dll
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\bin\Debug\net5.0\ACH-1 Demonstrator.pdb
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.csprojAssemblyReference.cache
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.GeneratedMSBuildEditorConfig.editorconfig
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.AssemblyInfoInputs.cache
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.AssemblyInfo.cs
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.csproj.CoreCompileInputs.cache
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.dll
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ref\ACH-1 Demonstrator.dll
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.pdb
+D:\CSharp Projects\ACH-1\ACH-1 Demonstrator\ACH-1 Demonstrator\obj\Debug\net5.0\ACH-1 Demonstrator.genruntimeconfig.cache
