@@ -1,16 +1,26 @@
 ﻿// Copyright 2021 Nathaniel Aquino, All rights reserved.
 using System;
+using System.IO;
 
 namespace ACH_1_Demonstrator
 {
     public class ACH1 : IDisposable // final implimentation of the class goes here
     {
-        #region initialization and disposal methods
+        #region variables
 
         public InitType initType;
         private bool disposedValue;
 
-        public ACH1(InitType initType) => this.initType = initType;
+        private bool computeSetupFlag = true;
+
+        private uint[] prevBlock = new uint[32]; //32 blocks of 32 bit numbers to store 1024 bit block
+        private uint[] block = new uint[32];
+
+        private byte[] output;
+        private byte[] input;
+
+        private string path;
+
         public enum InitType
         {
             file,
@@ -23,6 +33,13 @@ namespace ACH_1_Demonstrator
             notFound
         }
 
+        #endregion
+
+        #region initialization and disposal methods
+
+        public ACH1(InitType initType) => this.initType = initType;
+        
+
         protected virtual void Dispose(bool disposing) // GC comes later...
         {
             if (!disposedValue)
@@ -34,6 +51,13 @@ namespace ACH_1_Demonstrator
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
                 // TODO: set large fields to null
+
+                prevBlock = null;
+                block = null;
+                output = null;
+                input = null;
+                path = null;
+
                 disposedValue = true;
             }
         }
@@ -44,6 +68,10 @@ namespace ACH_1_Demonstrator
             GC.SuppressFinalize(this);
         }
 
+        #endregion
+
+        #region main function
+
         /// <summary>
         /// Returns a 1024 bit hash using ACH-1. Parameter input must be a string or a byte[].
         /// </summary>
@@ -51,17 +79,38 @@ namespace ACH_1_Demonstrator
         /// <returns></returns>
         public byte[] ComputeHash(object input)
         {
-            // type matching
-            var match = TypeMatch(input);
-            if (!match.success)
-                throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
+            if (computeSetupFlag)
+            {
+                // reset vars
+                Clear();
 
-            return null;
+                // type matching
+                var match = TypeMatch(input);
+                if (!match.success)
+                    throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
+                switch (match.type)
+                {
+                    case Type.tByte:
+                        this.input = (byte[])input;
+                        input = null;
+                        break;
+                    case Type.tString:
+                        path = (string)input;
+                        input = null;
+                        this.input = File.ReadAllBytes(path);
+                        break;
+                    case Type.notFound: break;
+                }
+
+                // FNK Formation
+                // (this is for another day)
+            }
+            return output;
         }
 
         #endregion
 
-        #region methods
+        #region methods and funcs
 
         private (bool success, Type type) TypeMatch(object input)
         {
@@ -74,6 +123,16 @@ namespace ACH_1_Demonstrator
                 return (true, Type.tString);
             else
                 return (true, Type.tByte);
+        }
+
+        /// <summary>
+        /// Forcefully clears certain variables in SHA-1. 
+        /// </summary>
+        public void Clear()
+        {
+            output = null;
+            input = null;
+            path = null;
         }
 
         #endregion
