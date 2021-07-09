@@ -7,11 +7,11 @@ namespace ACH_1_Demonstrator
     {
         #region initialization and disposal methods
 
-        public ACH1InitType initType;
+        public InitType initType;
         private bool disposedValue;
 
-        public ACH1(ACH1InitType initType) => this.initType = initType;
-        public enum ACH1InitType
+        public ACH1(InitType initType) => this.initType = initType;
+        public enum InitType
         {
             file,
             text
