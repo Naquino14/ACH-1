@@ -126,7 +126,7 @@ namespace ACH_1_Demonstrator
         }
 
         /// <summary>
-        /// Forcefully clears certain variables in SHA-1. 
+        /// Forcefully clears certain variables in ACH-1. 
         /// </summary>
         public void Clear()
         {
