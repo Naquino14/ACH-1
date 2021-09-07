@@ -38,7 +38,7 @@ namespace ACH_1_Demonstrator
         #region initialization and disposal methods
 
         public ACH1(InitType initType) => this.initType = initType;
-        
+
 
         protected virtual void Dispose(bool disposing) // GC comes later...
         {
