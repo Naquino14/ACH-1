@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace ACH_1_Demonstrator
 {
@@ -13,6 +14,16 @@ namespace ACH_1_Demonstrator
             {
                 switch (args[0])
                 {
+                    case "-testFNK":
+                        using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
+                        {
+                            if (ach1.GetFNK(args[1], out byte[] test))
+                                Console.WriteLine(Encoding.UTF8.GetString(test));
+                            else
+                                Console.WriteLine("Epic Fail!");
+                        }
+                            
+                        break;
                     case "-file":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
                             ;

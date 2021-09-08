@@ -1,12 +1,14 @@
 ﻿// Copyright 2021 Nathaniel Aquino, All rights reserved.
 // Aquino Cryptographic Hash version 1
+
+// this file contains all the comments
+
 using System;
 using System.IO;
-using System.Text;
 
 namespace ACH_1_Demonstrator
 {
-    public class ACH1 : IDisposable
+    public class ACH1 : IDisposable // final implimentation of the class goes here
     {
         #region variables
 
@@ -15,15 +17,13 @@ namespace ACH_1_Demonstrator
 
         private bool computeSetupFlag = true;
 
-        private byte[] prevBlock;
+        private byte[] prevBlock; // 1024 byte blocks
         private byte[] block;
 
-        private byte[] output = new byte[1024];
-        private byte[] input;
+        private byte[] output = new byte[1024]; // 1024 byte output
+        private byte[] input; // raw input for digestion
 
         private string path;
-
-        private readonly byte FNKPad = 0xAA;
 
         public enum InitType
         {
@@ -44,22 +44,33 @@ namespace ACH_1_Demonstrator
         public ACH1(InitType initType) => this.initType = initType;
 
 
-        protected virtual void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing) // GC comes later...
         {
             if (!disposedValue)
+            {
                 if (disposing)
                 {
-                    prevBlock = null;
-                    block = null;
-                    output = null;
-                    input = null;
-                    path = null;
-
-                    disposedValue = true;
+                    // TODO: dispose managed state (managed objects)
                 }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+
+                prevBlock = null;
+                block = null;
+                output = null;
+                input = null;
+                path = null;
+
+                disposedValue = true;
+            }
         }
 
-        public void Dispose() => Dispose(true);
+        public void Dispose() // do not change
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
 
         #endregion
 
@@ -89,15 +100,21 @@ namespace ACH_1_Demonstrator
                         break;
                     case Type.tString:
                         path = (string)input;
+                        // grab data out the switch
                         pathFlag = true;
                         break;
                     case Type.notFound: break;
                 }
+
+                // FNK Formation
+                // switch for type and case file, get the file name as the FNK, case no file, sample 64 bits from the input and pad
+                // input should be ambiguous between file path and input data
                 if (!GetFNK(input, out byte[] FNK))
                     throw new Exception("FNK Could not be generated");
+                // grab input data in the case of a file path
                 if (pathFlag)
-                    ; // do stuff i think
-                
+                    this.input = File.ReadAllBytes(path);
+
             }
             return output;
         }
@@ -129,29 +146,40 @@ namespace ACH_1_Demonstrator
             path = null;
         }
 
-        public bool GetFNK(object input, out byte[] FNK)
+        private bool GetFNK(object input, out byte[] FNK)
         {
             switch (initType)
             {
                 case InitType.file:
                     string path = (string)input;
                     string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
+                    // create 128 bytes of data from the file name.
                     byte[] byteName = Encoding.ASCII.GetBytes(fileName);
+                    // make sure that the file name is below 64 bytes, and omit anything else
                     byteName = Check64BitFit(byteName);
-                    if (!(byteName.Length > 64))
+                    if (!(byteName.Length > 64)) // and if its less, pad
                     {
+                        // get the remaining slots needed, and copy them to the original array
                         int padIters = (64 - byteName.Length) / 8;
                         for (int i = 0; i <= padIters; i++)
                             byteName = AddByteToArray(byteName, FNKPad);
+                        // check 1 more time to see if its below 64 bits
                         byteName = Check64BitFit(byteName);
                     }
+                    // if all goes well, output the fnk after otping with the FNKPad
+                    // create a 64 byte key with FNKPad
                     byte[] FNKOTPKey = new byte[] { FNKPad };
                     for (int i = 0; i <= 64; i++)
                         FNKOTPKey = AddByteToArray(FNKOTPKey, FNKPad);
+                    // otp with the bytename and the key
                     FNK = AddArray(OTPArray(byteName, FNKOTPKey), OTPArray(byteName, FNKOTPKey));
                     return true;
                 case InitType.text:
-                    // TODO: uhhhh
+                    // sample 64 bytes of data from the main block
+                    for (int i = 0; i <= 64; i++)
+                    {
+
+                    }
                     break;
             }
 
