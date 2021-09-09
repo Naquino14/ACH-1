@@ -18,7 +18,7 @@ namespace ACH_1_Demonstrator
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
                         {
                             if (ach1.GetFNK(args[1], out byte[] test))
-                                Console.WriteLine(Encoding.UTF8.GetString(test));
+                                ;
                             else
                                 Console.WriteLine("Epic Fail!");
                         }

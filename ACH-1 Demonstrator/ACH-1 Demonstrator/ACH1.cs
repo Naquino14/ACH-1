@@ -137,18 +137,36 @@ namespace ACH_1_Demonstrator
                     string path = (string)input;
                     string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
                     byte[] byteName = Encoding.ASCII.GetBytes(fileName);
-                    byteName = Check64BitFit(byteName);
-                    if (!(byteName.Length > 64))
+                    Console.WriteLine(byteName.Length);
+                    if (byteName.Length < 64)
                     {
-                        int padIters = (64 - byteName.Length) / 8;
-                        for (int i = 0; i <= padIters; i++)
-                            byteName = AddByteToArray(byteName, FNKPad);
-                        byteName = Check64BitFit(byteName);
+                        #region padding
+                        int r = 64 - byteName.Length;
+                        byte[] pad = new byte[] { FNKPad };
+                        for (int i = 1; i < r; i++)
+                            pad = AddByteToArray(pad, FNKPad);
+                        byteName = AddArray(byteName, pad);
+                        Console.WriteLine(byteName.Length);
+                        PrintArray(byteName);
+                        byteName = AddArray(byteName, pad);
+                        #endregion
+
+                        pad = null;
+                        r = 0;
+
+                        #region OTP
+                        byte[] bytenameOTP = OTPArray(byteName, byteName);
+                        PrintArray(bytenameOTP);
+                        Console.WriteLine(bytenameOTP.Length);
+                        #endregion
                     }
-                    byte[] FNKOTPKey = new byte[] { FNKPad };
-                    for (int i = 0; i <= 64; i++)
-                        FNKOTPKey = AddByteToArray(FNKOTPKey, FNKPad);
-                    FNK = AddArray(OTPArray(byteName, FNKOTPKey), OTPArray(byteName, FNKOTPKey));
+                    else
+                    {
+
+                    }
+
+                    //
+                    FNK = null;
                     return true;
                 case InitType.text:
                     // TODO: uhhhh
@@ -181,7 +199,7 @@ namespace ACH_1_Demonstrator
             return result;
         }
 
-        private byte[] Check64BitFit(byte[] input)
+        private byte[] Check64ByteFit(byte[] input)
         {
             if (input.Length > 64)
             { FCrray(input, 0, 64); return input; }
@@ -195,6 +213,13 @@ namespace ACH_1_Demonstrator
             for (int i = 0; i < input.Length; i++)
                 result[i] = (byte)(input[i] ^ key[i]);
             return result;
+        }
+
+        void PrintArray(byte[] array)
+        {
+            foreach (byte byt in array)
+                Console.Write(byt.ToString("X"));
+            Console.WriteLine();
         }
         #endregion
     }
