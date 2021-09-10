@@ -18,7 +18,8 @@ namespace ACH_1_Demonstrator
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
                         {
                             if (ach1.GetFNK(args[1], out byte[] test))
-                                ;
+                                foreach (byte byt in test)
+                                    Console.Write(byt.ToString("X"));
                             else
                                 Console.WriteLine("Epic Fail!");
                         }

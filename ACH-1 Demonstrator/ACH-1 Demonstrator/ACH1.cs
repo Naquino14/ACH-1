@@ -145,7 +145,6 @@ namespace ACH_1_Demonstrator
                         int r = 64 - byteNameB1.Length;
                         byte[] pad = new byte[] { FNKPad };
                         pad = CreatePadArray(FNKPad, r);
-                        Console.WriteLine(pad.Length);
                         byteNameB1 = AddArray(byteNameB1, pad);
                         #endregion
 
@@ -157,7 +156,6 @@ namespace ACH_1_Demonstrator
                         // TODO: work on + 64 bit
                     }
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
-                    PrintArray(FNKOTPPad, "FNK OTP Padding");
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
