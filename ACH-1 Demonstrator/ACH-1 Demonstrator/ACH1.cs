@@ -136,37 +136,30 @@ namespace ACH_1_Demonstrator
                 case InitType.file:
                     string path = (string)input;
                     string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
-                    byte[] byteName = Encoding.ASCII.GetBytes(fileName);
-                    Console.WriteLine(byteName.Length);
-                    if (byteName.Length < 64)
+                    byte[] byteNameB1 = Encoding.ASCII.GetBytes(fileName);
+                    byte[] byteNameB2 = new byte[byteNameB1.Length];
+                    byte[] FNKOTPPad;
+                    if (byteNameB1.Length < 64)
                     {
                         #region padding
-                        int r = 64 - byteName.Length;
+                        int r = 64 - byteNameB1.Length;
                         byte[] pad = new byte[] { FNKPad };
-                        for (int i = 1; i < r; i++)
-                            pad = AddByteToArray(pad, FNKPad);
-                        byteName = AddArray(byteName, pad);
-                        Console.WriteLine(byteName.Length);
-                        PrintArray(byteName);
-                        byteName = AddArray(byteName, pad);
+                        pad = CreatePadArray(FNKPad, r);
+                        Console.WriteLine(pad.Length);
+                        byteNameB1 = AddArray(byteNameB1, pad);
                         #endregion
 
                         pad = null;
                         r = 0;
-
-                        #region OTP
-                        byte[] bytenameOTP = OTPArray(byteName, byteName);
-                        PrintArray(bytenameOTP);
-                        Console.WriteLine(bytenameOTP.Length);
-                        #endregion
                     }
-                    else
+                    else if (byteNameB1.Length != 64) // greater than 64
                     {
-
+                        // TODO: work on + 64 bit
                     }
-
-                    //
-                    FNK = null;
+                    FNKOTPPad = CreatePadArray(FNKPad, 64);
+                    PrintArray(FNKOTPPad, "FNK OTP Padding");
+                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                    FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
                 case InitType.text:
                     // TODO: uhhhh
@@ -215,11 +208,32 @@ namespace ACH_1_Demonstrator
             return result;
         }
 
-        void PrintArray(byte[] array)
+        private byte[] OTPFit (byte[] input, byte[] key)
         {
+            byte[] result = new byte[input.Length];
+            byte[] fit = new byte[key.Length];
+            for (int i = 0; i <= key.Length; i++)
+                fit[i] = (byte)(input[i] ^ key[i]);
+            input.CopyTo(result, 0);
+            fit.CopyTo(result, 0);
+            return result;
+        }
+
+        void PrintArray(byte[] array, string name = "")
+        {
+            if (name != "")
+                Console.Write(name + ": ");
             foreach (byte byt in array)
                 Console.Write(byt.ToString("X"));
             Console.WriteLine();
+        }
+        
+        private byte[] CreatePadArray(byte b, int s)
+        {
+            byte[] result = new byte[s];
+            for (int i = 0; i < s; i++)
+                result[i] = b;
+            return result;
         }
         #endregion
     }
