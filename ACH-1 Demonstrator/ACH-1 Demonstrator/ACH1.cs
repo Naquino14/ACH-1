@@ -154,6 +154,8 @@ namespace ACH_1_Demonstrator
                     {
                         Console.WriteLine("Initial sampled name size: " + byteNameB1.Length);
                         PrintArray(byteNameB1, "Initial sampled block");
+                        foreach (byte byt in byteNameB1)
+                            Console.WriteLine(byt.ToString("X"));
                         // determine how many blocks to create
                         int fullBlocks = byteNameB1.Length / 64;
                         // find a byte to seek at
@@ -166,6 +168,11 @@ namespace ACH_1_Demonstrator
                         /// (which are both 64 bytes each, so you can get the exact number by dividing the length of the byteName block by 64 and multiplying it by 64)
                         /// ex: 163 bytes yields 2 full blocks, so seek at 64 * 2 = 128
                         /// once this is done fast copy the array to itself, but only up to the seek number * 64 (128 in this case, again.)
+
+                        // someth broke down here i think
+                        Console.WriteLine("BNB1 L: " + byteNameB1.Length + " | FCArray count:  " + (((fullBlocks + 1) * 64) - byteNameB1.Length));
+
+
                         byte[] padByteNameResidue = FCArray(byteNameB1, seek, ((fullBlocks + 1) * 64) - byteNameB1.Length);
                         byteNameB1 = FCArray(byteNameB1, 0, seek);
                         // perform OTP on byteName so that the final length is 64 bit
