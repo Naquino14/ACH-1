@@ -154,8 +154,6 @@ namespace ACH_1_Demonstrator
                     {
                         Console.WriteLine("Initial sampled name size: " + byteNameB1.Length);
                         PrintArray(byteNameB1, "Initial sampled block");
-                        foreach (byte byt in byteNameB1)
-                            Console.WriteLine(byt.ToString("X"));
                         // determine how many blocks to create
                         int fullBlocks = byteNameB1.Length / 64;
                         // find a byte to seek at
@@ -163,26 +161,30 @@ namespace ACH_1_Demonstrator
                         // grab end of block
                         /// to do that, get the amount of blocks, ex: 2 and add 1, this gets a certain multiple of 64 that is larger than the length of the final segment
                         /// ex 2: 3 * 64 = 192
-                        /// then get the difference suppose our byte name block is 163 bytes, ex 3: 192 - 163 = 29 residual bytes
+                        /// then get the difference. suppose our byte name block is 163 bytes, ex 3: 192 - 163 = 29 residual bytes
+                        /// to get the count of how many bytes to copy after the seek simply subtract 64 from that number, 64 - 29 = 35 bytes
+                        /// we can then verify this. our block is 163 bytes, 64 * 2 for two full blocks is 128, plus 35 is 163
                         /// then use fast copy array to copy these bytes to a new array, by seeking at the end of subblocks 1 and 2 in the bytename block
                         /// (which are both 64 bytes each, so you can get the exact number by dividing the length of the byteName block by 64 and multiplying it by 64)
                         /// ex: 163 bytes yields 2 full blocks, so seek at 64 * 2 = 128
                         /// once this is done fast copy the array to itself, but only up to the seek number * 64 (128 in this case, again.)
 
-                        // someth broke down here i think
-                        Console.WriteLine("BNB1 L: " + byteNameB1.Length + " | FCArray count:  " + (((fullBlocks + 1) * 64) - byteNameB1.Length));
+                        byte[] byteNameResidue = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
 
-
-                        byte[] padByteNameResidue = FCArray(byteNameB1, seek, ((fullBlocks + 1) * 64) - byteNameB1.Length);
                         byteNameB1 = FCArray(byteNameB1, 0, seek);
                         // perform OTP on byteName so that the final length is 64 bit
-                        PrintArray(padByteNameResidue, "Residue: ");
-                        Console.WriteLine("Residue Length: " + padByteNameResidue.Length);
-                        PrintArray(byteNameB1, "Fitted Block: ");
+                        PrintArray(byteNameResidue, "Residue");
+                        Console.WriteLine("Residue Length: " + byteNameResidue.Length);
+                        PrintArray(byteNameB1, "Fitted Block");
                         Console.WriteLine("Fitted Block Length: " + byteNameB1.Length);
+
+                        // clear vars
+                        byteNameResidue = null;
+                        seek = 0;
+                        fullBlocks = 0;
                     }
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
-                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                    //byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
                 case InitType.text:
