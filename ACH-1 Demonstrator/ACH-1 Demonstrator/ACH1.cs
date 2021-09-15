@@ -150,47 +150,16 @@ namespace ACH_1_Demonstrator
                         pad = null;
                         r = 0;
                     }
-                    else if (byteNameB1.Length != 64) // greater than 64
+                    else if (byteNameB1.Length != 64)
                     {
-                        // determine how many blocks to create
                         int fullBlocks = byteNameB1.Length / 64;
-                        // find a byte to seek at
                         int seek = 64 * fullBlocks;
-                        // grab end of block
-                        /// to do that, get the amount of blocks, ex: 2 and add 1, this gets a certain multiple of 64 that is larger than the length of the final segment
-                        /// ex 2: 3 * 64 = 192
-                        /// then get the difference. suppose our byte name block is 163 bytes, ex 3: 192 - 163 = 29 residual bytes
-                        /// to get the count of how many bytes to copy after the seek simply subtract 64 from that number, 64 - 29 = 35 bytes
-                        /// we can then verify this. our block is 163 bytes, 64 * 2 for two full blocks is 128, plus 35 is 163
-                        /// then use fast copy array to copy these bytes to a new array, by seeking at the end of subblocks 1 and 2 in the bytename block
-                        /// (which are both 64 bytes each, so you can get the exact number by dividing the length of the byteName block by 64 and multiplying it by 64)
-                        /// ex: 163 bytes yields 2 full blocks, so seek at 64 * 2 = 128
-                        /// once this is done fast copy the array to itself, but only up to the seek number * 64 (128 in this case, again.)
-
                         byte[] byteNameResidue = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
 
-                        // otp merge multiple blocks
-                        // create 2d array for subblocks of byte name b1
                         byte[][] bnb1sbs = new byte[fullBlocks][];
-                        // iterate over full subblocks of bnb1
                         for (int i = 0; i <= (fullBlocks - 1); i++)
                             bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
 
-                        //// test
-                        //Console.WriteLine(fullBlocks);
-                        //Console.WriteLine($"BNB1 untrimmed length: {byteNameB1.Length}");
-                        //PrintArray(byteNameB1, "BNB1");
-                        //Console.WriteLine($"BNB1SB1 untrimmed length: {bnb1sbs[0].Length}");
-                        //PrintArray(bnb1sbs[0], "BNB1SB1");
-                        //Console.WriteLine($"BNB1SB2 length: {bnb1sbs[1].Length}");
-                        //PrintArray(bnb1sbs[1], "BNB1SB2");
-                        //Console.WriteLine($"BNB1SB3 length: {bnb1sbs[2].Length}");
-                        //PrintArray(bnb1sbs[2], "BNB1SB3");
-                        //Console.WriteLine($"BNBS1SB4 length: {bnb1sbs[3].Length}");
-                        //PrintArray(bnb1sbs[3], "BNB1SB4");
-                        //Console.WriteLine($"BNB1Residue Length: {byteNameResidue.Length}");
-                        //PrintArray(byteNameResidue, "Residue");
-                        //Console.WriteLine($"Final length: {(bnb1sbs[0].Length + bnb1sbs[1].Length + bnb1sbs[2].Length + bnb1sbs[3].Length + byteNameResidue.Length)}");
                         // clear vars
                         byteNameResidue = null;
                         seek = 0;
