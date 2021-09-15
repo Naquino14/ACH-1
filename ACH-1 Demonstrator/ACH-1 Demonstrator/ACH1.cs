@@ -152,8 +152,6 @@ namespace ACH_1_Demonstrator
                     }
                     else if (byteNameB1.Length != 64) // greater than 64
                     {
-                        Console.WriteLine("Initial sampled name size: " + byteNameB1.Length);
-                        PrintArray(byteNameB1, "Initial sampled block");
                         // determine how many blocks to create
                         int fullBlocks = byteNameB1.Length / 64;
                         // find a byte to seek at
@@ -171,21 +169,41 @@ namespace ACH_1_Demonstrator
 
                         byte[] byteNameResidue = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
 
-                        byteNameB1 = FCArray(byteNameB1, 0, seek);
-                        // perform OTP on byteName so that the final length is 64 bit
-                        PrintArray(byteNameResidue, "Residue");
-                        Console.WriteLine("Residue Length: " + byteNameResidue.Length);
-                        PrintArray(byteNameB1, "Fitted Block");
-                        Console.WriteLine("Fitted Block Length: " + byteNameB1.Length);
+                        // otp merge multiple blocks
+                        // create 2d array for subblocks of byte name b1
+                        byte[][] bnb1sbs = new byte[fullBlocks][];
+                        // iterate over full subblocks of bnb1
+                        for (int i = 0; i <= (fullBlocks - 1); i++)
+                            bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
 
+                        //// test
+                        //Console.WriteLine(fullBlocks);
+                        //Console.WriteLine($"BNB1 untrimmed length: {byteNameB1.Length}");
+                        //PrintArray(byteNameB1, "BNB1");
+                        //Console.WriteLine($"BNB1SB1 untrimmed length: {bnb1sbs[0].Length}");
+                        //PrintArray(bnb1sbs[0], "BNB1SB1");
+                        //Console.WriteLine($"BNB1SB2 length: {bnb1sbs[1].Length}");
+                        //PrintArray(bnb1sbs[1], "BNB1SB2");
+                        //Console.WriteLine($"BNB1SB3 length: {bnb1sbs[2].Length}");
+                        //PrintArray(bnb1sbs[2], "BNB1SB3");
+                        //Console.WriteLine($"BNBS1SB4 length: {bnb1sbs[3].Length}");
+                        //PrintArray(bnb1sbs[3], "BNB1SB4");
+                        //Console.WriteLine($"BNB1Residue Length: {byteNameResidue.Length}");
+                        //PrintArray(byteNameResidue, "Residue");
+                        //Console.WriteLine($"Final length: {(bnb1sbs[0].Length + bnb1sbs[1].Length + bnb1sbs[2].Length + bnb1sbs[3].Length + byteNameResidue.Length)}");
                         // clear vars
                         byteNameResidue = null;
                         seek = 0;
                         fullBlocks = 0;
                     }
+                    // create a pad for the second subblock to be otped by
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
+                    // otp merge pad and second subblock
                     //byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                    // regular merge both subblocks
                     FNK = AddArray(byteNameB1, byteNameB2);
+                    //Console.WriteLine($"File Name Key size: {FNK.Length}");
+                    //Console.Write("File Name Key: ");
                     return true;
                 case InitType.text:
                     // TODO: uhhhh
@@ -248,7 +266,7 @@ namespace ACH_1_Demonstrator
         void PrintArray(byte[] array, string name = "")
         {
             if (name != "")
-                Console.Write(name + ": ");
+                Console.Write($"{name}: ");
             foreach (byte byt in array)
                 Console.Write(byt.ToString("X"));
             Console.WriteLine();

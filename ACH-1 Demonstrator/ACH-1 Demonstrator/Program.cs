@@ -19,7 +19,8 @@ namespace ACH_1_Demonstrator
                         {
                             if (ach1.GetFNK(args[1], out byte[] test))
                                 foreach (byte byt in test)
-                                    Console.Write(byt.ToString("X"));
+                                    /*Console.Write(byt.ToString("X"));*/
+                                    ;
                             else
                                 Console.WriteLine("Epic Fail!");
                         }
