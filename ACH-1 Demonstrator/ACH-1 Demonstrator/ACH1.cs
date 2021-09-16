@@ -66,7 +66,7 @@ namespace ACH_1_Demonstrator
         #region main function
 
         /// <summary>
-        /// Returns a 1024 bit hash using ACH-1. Parameter input must be a string or a byte[].
+        /// Returns a 1024 byte hash using ACH-1. Parameter input must be a string or a byte[].
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
@@ -146,7 +146,8 @@ namespace ACH_1_Demonstrator
                         r = 64 - byteNameB1.Length;
                         pad = CreatePadArray(FNKPad, r);
                         byteNameB1 = AddArray(byteNameB1, pad);
-
+                        
+                        // clear vars
                         pad = null;
                         r = 0;
                     }
@@ -154,25 +155,32 @@ namespace ACH_1_Demonstrator
                     {
                         int fullBlocks = byteNameB1.Length / 64;
                         int seek = 64 * fullBlocks;
-                        byte[] byteNameResidue = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
+                        byte[] bnr = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
 
                         byte[][] bnb1sbs = new byte[fullBlocks][];
                         for (int i = 0; i <= (fullBlocks - 1); i++)
                             bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
 
+                        byteNameB1 = bnb1sbs[0];
+                        foreach (byte[] subblock in bnb1sbs)
+                        {
+                            bool s1fo = true;
+                            if (!s1fo)
+                                byteNameB1 = OTPArray(byteNameB1, subblock);
+                            else
+                                s1fo = false;
+                        }
+
                         // clear vars
-                        byteNameResidue = null;
+                        bnr = null;
                         seek = 0;
                         fullBlocks = 0;
+                        bnb1sbs = null;
+                        
                     }
-                    // create a pad for the second subblock to be otped by
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
-                    // otp merge pad and second subblock
-                    //byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
-                    // regular merge both subblocks
+                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
-                    //Console.WriteLine($"File Name Key size: {FNK.Length}");
-                    //Console.Write("File Name Key: ");
                     return true;
                 case InitType.text:
                     // TODO: uhhhh

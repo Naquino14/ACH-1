@@ -17,12 +17,13 @@ namespace ACH_1_Demonstrator
                     case "-testFNK":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
                         {
+                            Console.WriteLine();
                             if (ach1.GetFNK(args[1], out byte[] test))
                                 foreach (byte byt in test)
-                                    /*Console.Write(byt.ToString("X"));*/
-                                    ;
+                                    Console.Write(byt.ToString("X"));
                             else
                                 Console.WriteLine("Epic Fail!");
+                            Console.WriteLine($"\nFNK Length: {test.Length}");
                         }
                             
                         break;
