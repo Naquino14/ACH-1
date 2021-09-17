@@ -28,7 +28,8 @@ namespace ACH_1_Demonstrator
         public enum InitType
         {
             file,
-            text
+            text,
+            bytes
         }
         private enum Type
         {
@@ -96,7 +97,8 @@ namespace ACH_1_Demonstrator
                 if (!GetFNK(input, out byte[] FNK))
                     throw new Exception("FNK Could not be generated");
                 if (pathFlag)
-                    ; // do stuff i think
+                    ; // read text from file
+
                 
             }
             return output;
@@ -134,15 +136,17 @@ namespace ACH_1_Demonstrator
             switch (initType)
             {
                 case InitType.file:
+                    // TODO: move 140-146 out of switch
                     string path = (string)input;
                     string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
-                    byte[] byteNameB1 = Encoding.ASCII.GetBytes(fileName);
+                    byte[] byteNameB1 = new byte[64];
                     byte[] byteNameB2 = new byte[byteNameB1.Length];
                     byte[] FNKOTPPad;
                     int r;
                     byte[] pad = new byte[] { FNKPad };
                     if (byteNameB1.Length < 64)
                     {
+                        byteNameB1 = Encoding.ASCII.GetBytes(fileName);
                         r = 64 - byteNameB1.Length;
                         pad = CreatePadArray(FNKPad, r);
                         byteNameB1 = AddArray(byteNameB1, pad);
@@ -153,6 +157,7 @@ namespace ACH_1_Demonstrator
                     }
                     else if (byteNameB1.Length != 64)
                     {
+                        byteNameB1 = Encoding.ASCII.GetBytes(fileName);
                         int fullBlocks = byteNameB1.Length / 64;
                         int seek = 64 * fullBlocks;
                         byte[] bnr = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
@@ -183,7 +188,19 @@ namespace ACH_1_Demonstrator
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
                 case InitType.text:
-                    // TODO: uhhhh
+                    // TODO: sample 64 bytes from text
+                    byteNameB1 = new byte[64];
+                    byteNameB2 = new byte[byteNameB1.Length];
+
+                    try
+                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
+                    catch (ArgumentOutOfRangeException u)
+                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length - 1); }
+                    catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
+
+                    // create pad
+
+                    FNK = AddArray(byteNameB1, byteNameB2);
                     break;
             }
 
