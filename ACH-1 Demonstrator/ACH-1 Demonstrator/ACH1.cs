@@ -133,17 +133,16 @@ namespace ACH_1_Demonstrator
 
         public bool GetFNK(object input, out byte[] FNK)
         {
+            string path = (string)input;
+            string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
+            byte[] byteNameB1 = new byte[64];
+            byte[] byteNameB2 = new byte[byteNameB1.Length];
+            byte[] FNKOTPPad;
+            int r;
+            byte[] pad = new byte[] { FNKPad };
             switch (initType)
             {
                 case InitType.file:
-                    // TODO: move 140-146 out of switch
-                    string path = (string)input;
-                    string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
-                    byte[] byteNameB1 = new byte[64];
-                    byte[] byteNameB2 = new byte[byteNameB1.Length];
-                    byte[] FNKOTPPad;
-                    int r;
-                    byte[] pad = new byte[] { FNKPad };
                     if (byteNameB1.Length < 64)
                     {
                         byteNameB1 = Encoding.ASCII.GetBytes(fileName);
@@ -195,13 +194,17 @@ namespace ACH_1_Demonstrator
                     try
                     { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
                     catch (ArgumentOutOfRangeException u)
-                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length - 1); }
+                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length); }
                     catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
-
+                    PrintArray(byteNameB1);
                     // create pad
-
+                    if (byteNameB1.Length != 64)
+                        pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
+                    byteNameB1 = AddArray(byteNameB1, pad);
+                    FNKOTPPad = CreatePadArray(FNKPad, 64); // i stopped here, not sure what to do but ill look over it like tomorrow or monoday
+                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
-                    break;
+                    return true;
             }
 
             FNK = null; return false;
