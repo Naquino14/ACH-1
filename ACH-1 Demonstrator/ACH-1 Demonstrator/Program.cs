@@ -39,6 +39,19 @@ namespace ACH_1_Demonstrator
                             Console.WriteLine($"\nFNK Length: {FNK.Length}");
                         }
                         break;
+                    case "-testFNKbyte[]":
+                        using (ACH1 ach1 = new ACH1(ACH1.InitType.bytes))
+                        {
+                            Console.WriteLine();
+                            byte[] in_ = Encoding.ASCII.GetBytes(args[1]);
+                            if (ach1.GetFNK(in_, out byte[] FNK))
+                                foreach (byte byt in FNK)
+                                    Console.Write(byt.ToString("X"));
+                            else
+                                Console.WriteLine("Epic Fail!");
+                            Console.WriteLine($"\nFNK Length: {FNK.Length}");
+                        }
+                        break;
                     case "-file":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
                             ;

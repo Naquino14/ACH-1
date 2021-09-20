@@ -137,7 +137,7 @@ namespace ACH_1_Demonstrator
         /// <param name="input"></param>
         /// <param name="FNK"></param>
         /// <returns></returns>
-        public bool GetFNK(object input, out byte[] FNK)
+        public bool GetFNK(object input, out byte[] FNK) // I am thinking about uprading all of the inittypes to work like InitType.file, but for now I am leaving it like this
         {
             System.Type typ = input.GetType();
             string path = "";
@@ -233,13 +233,44 @@ namespace ACH_1_Demonstrator
 
                 #region InitType.bytes
                 case InitType.bytes:
-                    FNK = null;
+                    // this should be the same idea as InitType.text
+
+                    byteNameB1 = new byte[64];
+                    byteNameB2 = new byte[byteNameB1.Length];
+
+                    // read 64 bytes from input
+
+                    //try
+                    //{ byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
+                    //catch (ArgumentOutOfRangeException u)
+                    //{ byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length); }
+                    //catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
+
+                    try
+                    { byteNameB1 = FCArray((byte[])input, 0, 64);
+                    } catch (ArgumentException u)
+                    { byteNameB1 = FCArray((byte[])input, 0, ((byte[])input).Length); }
+
+
+                    if (byteNameB1.Length < 64)
+                    {
+                        pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
+                        byteNameB1 = AddArray(byteNameB1, pad);
+                    }
+
+                    pad = null;
+
+                    FNKOTPPad = CreatePadArray(FNKPad, 64);
+                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                    FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
                     #endregion
             }
 
             FNK = null; return false;
         }
+
+        #region Array Funcs
 
         private byte[] FCArray(byte[] input, int s, int c)
         {
@@ -307,6 +338,9 @@ namespace ACH_1_Demonstrator
                 result[i] = b;
             return result;
         }
+
+        #endregion
+
         #endregion
     }
 }
