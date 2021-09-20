@@ -233,25 +233,13 @@ namespace ACH_1_Demonstrator
 
                 #region InitType.bytes
                 case InitType.bytes:
-                    // this should be the same idea as InitType.text
-
                     byteNameB1 = new byte[64];
                     byteNameB2 = new byte[byteNameB1.Length];
-
-                    // read 64 bytes from input
-
-                    //try
-                    //{ byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
-                    //catch (ArgumentOutOfRangeException u)
-                    //{ byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length); }
-                    //catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
 
                     try
                     { byteNameB1 = FCArray((byte[])input, 0, 64);
                     } catch (ArgumentException u)
                     { byteNameB1 = FCArray((byte[])input, 0, ((byte[])input).Length); }
-
-
                     if (byteNameB1.Length < 64)
                     {
                         pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
