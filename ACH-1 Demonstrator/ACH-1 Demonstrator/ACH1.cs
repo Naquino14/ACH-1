@@ -131,17 +131,35 @@ namespace ACH_1_Demonstrator
             path = null;
         }
 
+        /// <summary>
+        /// Returns a 128 byte File Name Key. Parameter input must be a string or a byte[].
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="FNK"></param>
+        /// <returns></returns>
         public bool GetFNK(object input, out byte[] FNK)
         {
-            string path = (string)input;
+            System.Type typ = input.GetType();
+            string path = "";
+            if (typ == typeof(string))
+                path = (string)input;
+            else if (typ == typeof(byte[]))
+                path = Encoding.ASCII.GetString((byte[])input);
+            else
+                throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
+
             string fileName = path.Split('\\')[path.Split('\\').Length - 1].Split('.')[0];
             byte[] byteNameB1 = new byte[64];
             byte[] byteNameB2 = new byte[byteNameB1.Length];
             byte[] FNKOTPPad;
             int r;
             byte[] pad = new byte[] { FNKPad };
+
+            path = null;
             switch (initType)
             {
+                #region InitType.file
+
                 case InitType.file:
                     if (byteNameB1.Length < 64)
                     {
@@ -150,7 +168,6 @@ namespace ACH_1_Demonstrator
                         pad = CreatePadArray(FNKPad, r);
                         byteNameB1 = AddArray(byteNameB1, pad);
                         
-                        // clear vars
                         pad = null;
                         r = 0;
                     }
@@ -175,7 +192,6 @@ namespace ACH_1_Demonstrator
                                 s1fo = false;
                         }
 
-                        // clear vars
                         bnr = null;
                         seek = 0;
                         fullBlocks = 0;
@@ -186,8 +202,12 @@ namespace ACH_1_Demonstrator
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
+
+                    #endregion
+
+                #region InitType.text
+
                 case InitType.text:
-                    // TODO: sample 64 bytes from text
                     byteNameB1 = new byte[64];
                     byteNameB2 = new byte[byteNameB1.Length];
 
@@ -196,15 +216,26 @@ namespace ACH_1_Demonstrator
                     catch (ArgumentOutOfRangeException u)
                     { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length); }
                     catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
-                    PrintArray(byteNameB1);
-                    // create pad
-                    if (byteNameB1.Length != 64)
+                    if (byteNameB1.Length < 64)
+                    {
                         pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
-                    byteNameB1 = AddArray(byteNameB1, pad);
-                    FNKOTPPad = CreatePadArray(FNKPad, 64); // i stopped here, not sure what to do but ill look over it like tomorrow or monoday
+                        byteNameB1 = AddArray(byteNameB1, pad);
+                    }
+
+                    pad = null;
+
+                    FNKOTPPad = CreatePadArray(FNKPad, 64);
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
+
+                    #endregion
+
+                #region InitType.bytes
+                case InitType.bytes:
+                    FNK = null;
+                    return true;
+                    #endregion
             }
 
             FNK = null; return false;
