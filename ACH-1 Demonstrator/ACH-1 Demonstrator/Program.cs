@@ -54,7 +54,7 @@ namespace ACH_1_Demonstrator
                         break;
                     case "-file":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
-                            ;
+                            ach1.ComputeHash(args[1]);
                         break;
                     case "-text":
                         ;

@@ -21,9 +21,15 @@ namespace ACH_1_Demonstrator
         private byte[] output = new byte[1024];
         private byte[] input;
 
+        private byte[] FNK = new byte[128];
+
         private string path;
 
         private readonly byte FNKPad = 0xAA;
+
+        private bool pathFlag = false;
+        private int filePos;
+        private readonly int readCount = 448;
 
         public enum InitType
         {
@@ -71,18 +77,25 @@ namespace ACH_1_Demonstrator
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public byte[] ComputeHash(object input) // for actual input, use this.input
-        {
-            if (computeSetupFlag)
-            {
-                // reset vars
-                Clear();
+        public byte[] ComputeHash(object input)
+        { return ComputeHash_(input); }
 
+        /// <summary>
+        /// Returns a 1024 byte hash using ACH-1. Parameter input must be a string or a byte[]. Parameter FNK must be 128 bytes in length.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public byte[] ComputeHash(object input, byte[] FNK) // for actual input, use this.input, TODO: add overloads.
+        { return ComputeHash_(input, FNK); }
+
+        private byte[] ComputeHash_(object input, byte[] FNKO = null)
+        {
+            if (computeSetupFlag) // setup
+            {
                 // type matching
                 var match = TypeMatch(input);
                 if (!match.success)
                     throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
-                bool pathFlag = false;
                 switch (match.type)
                 {
                     case Type.tByte:
@@ -94,13 +107,44 @@ namespace ACH_1_Demonstrator
                         break;
                     case Type.notFound: break;
                 }
-                if (!GetFNK(input, out byte[] FNK))
-                    throw new Exception("FNK Could not be generated");
-                if (pathFlag)
-                    ; // read text from file
+
+                // generate FNK
+                bool FNKS = false;
+                if (FNKO == null) // case of no override
+                {
+                    FNKS = GetFNK(input, out byte[] GENFNK);
+                    if (!FNKS)
+                        throw new Exception("FNK Could not be generated");
+                    FNK = GENFNK;
+                    GENFNK = null;
+                }
 
                 
+                computeSetupFlag = false; // FO Bool for FNK generation
             }
+
+            // major compute loop
+            bool computeFlag = true;
+            int iter = 1;
+            while (computeFlag)
+            {
+                Console.WriteLine($"Iteration: {iter}");
+                computeFlag = false;
+
+                // seq byteread
+                this.input = SeqBR(input, filePos, readCount, out int readBytes);
+                if (!(readBytes < readCount)) // final block
+                    computeFlag = true;
+                Console.WriteLine($"Read: {readBytes}");
+                foreach (byte byt in this.input)
+                    Console.Write(byt.ToString("X"));
+                Console.WriteLine();
+                iter++;
+            }
+
+
+            // clear vars
+            Clear();
             return output;
         }
 
@@ -113,7 +157,7 @@ namespace ACH_1_Demonstrator
             System.Type inputType = input.GetType();
             if (input == null)
                 return (false, Type.notFound);
-            if (inputType != typeof(string) || inputType != typeof(byte[]))
+            if (inputType != typeof(string) && inputType != typeof(byte[]))
                 return (false, Type.notFound);
             if (inputType == typeof(string))
                 return (true, Type.tString);
@@ -130,6 +174,12 @@ namespace ACH_1_Demonstrator
             input = null;
             path = null;
         }
+
+        /// <summary>
+        /// Override the InitType of the current instance if ACH1.
+        /// </summary>
+        /// <param name="type"></param>
+        public void OverrideMode(InitType type) => initType = type;
 
         /// <summary>
         /// Returns a 128 byte File Name Key. Parameter input must be a string or a byte[].
@@ -196,7 +246,6 @@ namespace ACH_1_Demonstrator
                         seek = 0;
                         fullBlocks = 0;
                         bnb1sbs = null;
-                        
                     }
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
@@ -256,6 +305,28 @@ namespace ACH_1_Demonstrator
             }
 
             FNK = null; return false;
+        }
+
+        public byte[] SeqBR(object i, int s, int c, out int r) // sequential bytereader
+        {
+            byte[] o = new byte[c];
+            r = 0;
+            // switch for init type
+            switch (initType)
+            {
+                case InitType.file:
+                    using (FileStream fs = new FileStream((string)i, FileMode.Open))
+                        r = fs.Read(o, s, c);
+                    filePos += r;
+                        break;
+                case InitType.text:
+                    ;
+                    break;
+                case InitType.bytes:
+                    ;
+                    break;
+            }
+            return o;
         }
 
         #region Array Funcs
