@@ -23,7 +23,6 @@ namespace ACH_1_Demonstrator
 
         private byte[] FNK = new byte[128];
 
-        private string path;
 
         private readonly byte FNKPad = 0xAA;
 
@@ -60,7 +59,6 @@ namespace ACH_1_Demonstrator
                     block = null;
                     output = null;
                     input = null;
-                    path = null;
 
                     disposedValue = true;
                 }
@@ -73,18 +71,19 @@ namespace ACH_1_Demonstrator
         #region main function
 
         /// <summary>
-        /// Returns a 1024 byte hash using ACH-1. Parameter input must be a string or a byte[].
+        /// Computes the hash using ACH-1 for the specified input using the specified method in the constructor.
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
+        /// <param name="input">Input data, or a path to a file, to be hashed using the generation method specified in the constructor.</param>
+        /// <returns>A 1024 byte hash using ACH-1.</returns>
         public byte[] ComputeHash(object input)
         { return ComputeHash_(input); }
 
         /// <summary>
-        /// Returns a 1024 byte hash using ACH-1. Parameter input must be a string or a byte[]. Parameter FNK must be 128 bytes in length.
+        /// Computes the hash using ACH-1 for the specified input using the specified method in the constructor.
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
+        /// <param name="input">Input data, or a path to a file, to be hashed using the generation method specified in the constructor.</param>
+        /// <param name="FNK">File Name Key override to be used instead of automatically generating one from the generation method specified in the constructor.</param>
+        /// <returns>A 2024 byte hash using ACH-1.</returns>
         public byte[] ComputeHash(object input, byte[] FNK) // for actual input, use this.input, TODO: add overloads.
         { return ComputeHash_(input, FNK); }
 
@@ -102,7 +101,6 @@ namespace ACH_1_Demonstrator
                         this.input = (byte[])input;
                         break;
                     case Type.tString:
-                        path = (string)input;
                         pathFlag = true;
                         break;
                     case Type.notFound: break;
@@ -125,23 +123,33 @@ namespace ACH_1_Demonstrator
 
             // major compute loop
             bool computeFlag = true;
-            int iter = 1;
+            int iter = 0;
+            int read;
             while (computeFlag)
             {
                 Console.WriteLine($"Iteration: {iter}");
                 computeFlag = false;
+                (int fullBlocks, int fileLength) seqBrInfo = (0, 0);
 
-                // seq byteread
-                this.input = SeqBR(input, filePos, readCount, out int readBytes);
-                if (!(readBytes < readCount)) // final block
-                    computeFlag = true;
-                Console.WriteLine($"Read: {readBytes}");
-                foreach (byte byt in this.input)
-                    Console.Write(byt.ToString("X"));
-                Console.WriteLine();
+                if (pathFlag) // case of a file, get input
+                {
+                    // seq byteread
+                    seqBrInfo = InitSeqBR(input);
+                    read = SeqBR(input, iter, out block);
+                   
+                    Console.Write($"Count: {read} | Bytes: ");
+                    foreach (byte byt in block)
+                        Console.Write(byt.ToString("X"));
+                    Console.WriteLine();
+
+                    computeFlag = !(read < readCount);
+                }
+                // move blocks
+                prevBlock = block;
+                block = null;
                 iter++;
             }
-
+            Console.WriteLine("Finished hashing");
 
             // clear vars
             Clear();
@@ -172,21 +180,20 @@ namespace ACH_1_Demonstrator
         {
             output = null;
             input = null;
-            path = null;
         }
 
         /// <summary>
-        /// Override the InitType of the current instance if ACH1.
+        /// Override the InitType of the current instance of ACH1.
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="type">The type to override the current hash and FNK generation method.</param>
         public void OverrideMode(InitType type) => initType = type;
 
         /// <summary>
-        /// Returns a 128 byte File Name Key. Parameter input must be a string or a byte[].
+        /// Computes a File Name Key using the method specified in the constructor.
         /// </summary>
-        /// <param name="input"></param>
-        /// <param name="FNK"></param>
-        /// <returns></returns>
+        /// <param name="input">Input data for the File Name Key Generator. Must be a string or a byte[]. The string can contain a file path or data to be sampled.</param>
+        /// <param name="FNK">File Name Key byte[] output. Must be declared and used.</param>
+        /// <returns>A 128 byte File Name Key.</returns>
         public bool GetFNK(object input, out byte[] FNK) // I am thinking about uprading all of the inittypes to work like InitType.file, but for now I am leaving it like this
         {
             System.Type typ = input.GetType();
@@ -307,18 +314,25 @@ namespace ACH_1_Demonstrator
             FNK = null; return false;
         }
 
-        public byte[] SeqBR(object i, int s, int c, out int r) // sequential bytereader
+        public (int fullBlocks, int fileLength) InitSeqBR(object input)
+        { return ((int)new FileInfo((string)input).Length / readCount, (int)new FileInfo((string)input).Length); }
+
+        public int SeqBR(object input, int computeIteration, out byte[] readBytes) // sequential bytereader
         {
-            byte[] o = new byte[c];
-            r = 0;
+            readBytes = null;
+            int? readCount = null;
             // switch for init type
             switch (initType)
             {
                 case InitType.file:
-                    using (FileStream fs = new FileStream((string)i, FileMode.Open))
-                        r = fs.Read(o, s, c);
-                    filePos += r;
-                        break;
+                    using (FileStream fs = new FileStream((string)input, FileMode.Open))
+                    {
+                        fs.Position = this.readCount * computeIteration;
+                        int fileLength = (int)new FileInfo((string)input).Length;
+                        int count = Math.Min(fileLength - (computeIteration * this.readCount), this.readCount);
+                        readCount = fs.Read(readBytes ??= new byte[count], 0, count);
+                    }
+                    break;
                 case InitType.text:
                     ;
                     break;
@@ -326,8 +340,26 @@ namespace ACH_1_Demonstrator
                     ;
                     break;
             }
-            return o;
+            return readCount ?? 0;
         }
+
+        #region seeding functions
+
+        internal byte[] Spike(in byte[] input)
+        {
+            byte[] result = new byte[input.Length];
+
+            return result;
+        }
+
+        internal byte[] Jump(in byte[] input)
+        {
+            byte[] result = new byte[input.Length];
+
+            return result;
+        }
+
+        #endregion
 
         #region Array Funcs
 

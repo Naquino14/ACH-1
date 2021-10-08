@@ -1,5 +1,5 @@
 ﻿using System;
-using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ACH_1_Demonstrator
@@ -70,7 +70,13 @@ namespace ACH_1_Demonstrator
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.bytes))
                             ; // parse args[1] as byte[] and 
                         break;
-
+                    case "-sha": // just looking at how the function is commented on.
+                        using (SHA1 sha1 = SHA1.Create())
+                            sha1.ComputeHash(new byte[] { 0xAA, 0xBB });
+                        break;
+                    case "-testSpike":
+                        
+                        break;
                 }
             }
             catch (Exception ex)
