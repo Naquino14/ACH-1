@@ -27,8 +27,8 @@ namespace ACH_1_Demonstrator
 
         private bool pathFlag = false;
 
+        #region constants
 
-        // constants
         private readonly byte FNKPad = 0xAA;
         private readonly byte JumpConstant = 0xFF;
         private readonly byte MainSubblockPad = 0x15;
@@ -40,6 +40,10 @@ namespace ACH_1_Demonstrator
         private readonly int readCount = 448;
 
         private readonly int spikeStrength = 4;
+
+        #endregion
+
+        #region enums
 
         public enum InitType
         {
@@ -54,6 +58,8 @@ namespace ACH_1_Demonstrator
             tByte,
             notFound
         }
+
+        #endregion
 
         #endregion
 
@@ -96,14 +102,17 @@ namespace ACH_1_Demonstrator
         /// <param name="input">Input data, or a path to a file, to be hashed using the generation method specified in the constructor.</param>
         /// <param name="FNK">File Name Key override to be used instead of automatically generating one from the generation method specified in the constructor.</param>
         /// <returns>A 2024 byte hash using ACH-1.</returns>
-        public byte[] ComputeHash(object input, byte[] FNK) // for actual input, use this.input, TODO: add overloads.
+        public byte[] ComputeHash(object input, byte[] FNK) // for actual input, use this.input
         { return ComputeHash_(input, FNK); }
 
         private byte[] ComputeHash_(object input, byte[] FNKO = null) // todo: i forgor datastreams :skull:
         {
-            if (computeSetupFlag) // setup
+            #region setup
+
+            if (computeSetupFlag)
             {
-                // type matching
+                #region type matching
+
                 var match = TypeMatch(input);
                 if (!match.success)
                     throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
@@ -118,9 +127,12 @@ namespace ACH_1_Demonstrator
                     case Type.notFound: break;
                 }
 
-                // generate FNK
+                #endregion
+
+                #region generate FNK
+
                 bool FNKS = false;
-                if (FNKO == null) // case of no override
+                if (FNKO == null)
                 {
                     FNKS = GetFNK(input, out byte[] GENFNK);
                     if (!FNKS)
@@ -129,72 +141,94 @@ namespace ACH_1_Demonstrator
                     GENFNK = null;
                 }
 
-                
-                computeSetupFlag = false; // FO Bool for FNK generation
+                computeSetupFlag = false;
+
+                #endregion
             }
 
-            // major compute loop
+            #endregion
+
+            #region major compute loop
+
             bool computeFlag = true;
             int computationIteration = 0;
             int read;
             while (computeFlag)
             {
-                //Console.WriteLine($"Iteration: {computationIteration}");
+                Console.WriteLine($"Iteration: {computationIteration}");
+
+                #region getting the next main subblock
+
                 computeFlag = false;
                 (int fullBlocks, int fileLength) seqBrInfo = (0, 0);
 
                 if (pathFlag) // case of a file, get input
                 {
-                    // get next block
+                    seqBrInfo = InitSeqBR(input);
+                    read = SeqBR(input, computationIteration, out block);
+                    computeFlag = !(read < readCount); // true if the computation isnt finished
+                } else
+                {
                     switch (initType)
                     {
-                        case InitType.file:
-                            // seq byteread
-                            seqBrInfo = InitSeqBR(input);
-                            read = SeqBR(input, computationIteration, out block);
-                            computeFlag = !(read < readCount); // true if the computation isnt finished
-                            break;
                         case InitType.bytes:
                             throw new NotImplementedException();
-                            //break;
+                        //break;
                         case InitType.text:
                             throw new NotImplementedException();
-                            //break;
+                        //break;
+                        case InitType.stream:
+                            throw new NotImplementedException();
+                        //break;
                     }
-                    // check to see if padding for the main sublock is required
-                    if (block.Length < 448)
-                        block = AddArray(block, CreatePadArray(MainSubblockPad, 448 - block.Length));
-
-                    // ciphered bytes formation
-                    byte[] CBKey = new byte[448];
-                    CBKey = AddArray(FNK, FNK);
-                    CBKey = AddArray(CBKey, FNK);
-                    // create a pad for the fnk, it should be 64 bytes.
-                    byte[] CBFNKPad = CreatePadArray(FNKPad, 64);
-                    CBKey = AddArray(CBKey, CBFNKPad);
-                    // append ciphered bytes and fnk to current block
-                    block = AddArray(block, OTPArray(block, CBKey));
-                    block = AddArray(block, FNK);
-
-                    #region seeding
-                    int SC = GenerateSeedConstant(block, computationIteration);
-                    Console.WriteLine($"Seed constant for round {computationIteration}: {SC}");
-
-                    block = RotRight(block, block[brs1Index]);
-                    BlockSpike(block);
-                    block = RotLeft(block, block[brs2Index]);
-                    BlockJump(block);
-                    block = RotRight(block, block[brs3Index]);
-                    #endregion
+                         
                 }
-                // move blocks
+
+                #endregion
+
+                #region CB and block Formation
+
+                if (block.Length < 448)
+                    block = AddArray(block, CreatePadArray(MainSubblockPad, 448 - block.Length));
+
+                byte[] CBKey = new byte[448];
+                CBKey = AddArray(FNK, FNK);
+                CBKey = AddArray(CBKey, FNK);
+                byte[] CBFNKPad = CreatePadArray(FNKPad, 64);
+                CBKey = AddArray(CBKey, CBFNKPad);
+                block = AddArray(block, OTPArray(block, CBKey));
+                block = AddArray(block, FNK);
+
+                #endregion
+
+                #region block seeding
+
+                int SC = GenerateSeedConstant(block, computationIteration);
+
+                block = RotRight(block, block[brs1Index]);
+                BlockSpike(block);
+                block = RotLeft(block, block[brs2Index]);
+                BlockJump(block);
+                block = RotRight(block, block[brs3Index]);
+
+                #endregion
+
+                #region subblock digestion
+
+                // there are a ratio of 2:1 for subblocks:functions, so in this case i have 4 functions, and 8 subblocks named A,B,C,D,E,F,G,H
+                // see notebook for method
+
+                #endregion
+
                 prevBlock = block;
                 block = null;
                 computationIteration++;
             }
+
+            #endregion
+
             Console.WriteLine("Finished hashing");
 
-            // clear vars
             Clear();
             return output;
         }
@@ -237,7 +271,7 @@ namespace ACH_1_Demonstrator
         /// <param name="input">Input data for the File Name Key Generator. Must be a string or a byte[]. The string can contain a file path or data to be sampled.</param>
         /// <param name="FNK">File Name Key byte[] output. Must be declared and used.</param>
         /// <returns>A 128 byte File Name Key.</returns>
-        public bool GetFNK(object input, out byte[] FNK) // I am thinking about uprading all of the inittypes to work like InitType.file, but for now I am leaving it like this
+        public bool GetFNK(object input, out byte[] FNK) // I am thinking about upgrading all of the inittypes to work like InitType.file, but for now I am leaving it like this
         {
             System.Type typ = input.GetType();
             string path = "";
@@ -357,10 +391,10 @@ namespace ACH_1_Demonstrator
             FNK = null; return false;
         }
 
-        public (int fullBlocks, int fileLength) InitSeqBR(object input)
+        private (int fullBlocks, int fileLength) InitSeqBR(object input)
         { return ((int)new FileInfo((string)input).Length / readCount, (int)new FileInfo((string)input).Length); }
 
-        public int SeqBR(object input, int computeIteration, out byte[] readBytes) // sequential bytereader
+        private int SeqBR(object input, int computeIteration, out byte[] readBytes) // sequential bytereader
         {
             readBytes = null;
             int? readCount = null;
@@ -392,11 +426,11 @@ namespace ACH_1_Demonstrator
                 
         }
 
-        private void BlockJump(in byte[] block) // this is causing nullref
+        private void BlockJump(in byte[] block)
         {
             for (int i = 0; i <= block.Length; i++)
             {
-                if (!(i >= 1022)) // if not overflowing
+                if (!(i >= 1022))
                 {
                     byte newByt = (byte)((JumpConstant - block[i]) * block[i + 2]);
                     if (newByt > 255)
@@ -430,13 +464,12 @@ namespace ACH_1_Demonstrator
 
         #endregion
 
-        private int GenerateSeedConstant(in byte[] block, int computationIteration) // this doesnt work, not surprised lmao
+        private int GenerateSeedConstant(in byte[] block, int computationIteration)
         {
-            // ok this is basically GSC(in B[], i) = f(i) = sin( (B[340] * (i + 10)) / 20) * cos((i + 10) ^ B[680]) ^ ( B[1020] * i)
-            // this needs to be able to deal with huge computation iterations.
-            computationIteration %= 47; // after a CI of mod 256 the output SC is stuck at 192 and fluctuates rarely, but anything below a CI of 47 seems to be random.
+            // GSC(in B[], i) = f(i) = sin( (B[340] * (i + 10)) / 20) * cos((i + 10) ^ B[680]) ^ ( B[1020] * i)
+            computationIteration %= 47;
             float t1 = MathF.Sin(block[340] * computationIteration / 20);
-            float t2 = MathF.Cos(MathF.Pow(computationIteration, (block[680] / 10)));
+            float t2 = MathF.Cos(MathF.Pow(computationIteration, block[680] / 10));
             float t3 = (block[1020] * computationIteration + 1) / 100;
             t2 = MathF.Pow(t2, t3);
             float val =  t1 * t2;
