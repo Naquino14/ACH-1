@@ -2,7 +2,9 @@
 // Aquino Cryptographic Hash version 1
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Runtime;
 
 namespace ACH_1_Demonstrator
 {
@@ -23,18 +25,26 @@ namespace ACH_1_Demonstrator
 
         private byte[] FNK = new byte[128];
 
-
-        private readonly byte FNKPad = 0xAA;
-
         private bool pathFlag = false;
-        private int filePos;
+
+
+        // constants
+        private readonly byte FNKPad = 0xAA;
+        private readonly byte JumpConstant = 0xFF;
+        private readonly byte MainSubblockPad = 0x15;
+
+        private readonly int brsIndex = 380; // block rotation sample index
+
         private readonly int readCount = 448;
+
+        private readonly int spikeStrength = 4;
 
         public enum InitType
         {
             file,
             text,
-            bytes
+            bytes,
+            stream
         }
         private enum Type
         {
@@ -87,7 +97,7 @@ namespace ACH_1_Demonstrator
         public byte[] ComputeHash(object input, byte[] FNK) // for actual input, use this.input, TODO: add overloads.
         { return ComputeHash_(input, FNK); }
 
-        private byte[] ComputeHash_(object input, byte[] FNKO = null)
+        private byte[] ComputeHash_(object input, byte[] FNKO = null) // todo: i forgor datastreams :skull:
         {
             if (computeSetupFlag) // setup
             {
@@ -123,31 +133,68 @@ namespace ACH_1_Demonstrator
 
             // major compute loop
             bool computeFlag = true;
-            int iter = 0;
+            int computationIteration = 0;
             int read;
             while (computeFlag)
             {
-                Console.WriteLine($"Iteration: {iter}");
+                Console.WriteLine($"Iteration: {computationIteration}");
                 computeFlag = false;
                 (int fullBlocks, int fileLength) seqBrInfo = (0, 0);
 
                 if (pathFlag) // case of a file, get input
                 {
-                    // seq byteread
-                    seqBrInfo = InitSeqBR(input);
-                    read = SeqBR(input, iter, out block);
-                   
-                    Console.Write($"Count: {read} | Bytes: ");
-                    foreach (byte byt in block)
-                        Console.Write(byt.ToString("X"));
-                    Console.WriteLine();
+                    // get next block
+                    switch (initType)
+                    {
+                        case InitType.file:
+                            // seq byteread
+                            seqBrInfo = InitSeqBR(input);
+                            read = SeqBR(input, computationIteration, out block);
+                            computeFlag = !(read < readCount); // true if the computation isnt finished
+                            break;
+                        case InitType.bytes:
+                            throw new NotImplementedException();
+                            //break;
+                        case InitType.text:
+                            throw new NotImplementedException();
+                            //break;
+                    }
+                    // check to see if padding for the main sublock is required
+                    if (block.Length < 448)
+                        block = AddArray(block, CreatePadArray(MainSubblockPad, 448 - block.Length));
 
-                    computeFlag = !(read < readCount);
+                    // ciphered bytes formation
+                    byte[] CBKey = new byte[448];
+                    CBKey = AddArray(FNK, FNK);
+                    CBKey = AddArray(CBKey, FNK);
+                    // create a pad for the fnk, it should be 64 bytes.
+                    byte[] CBFNKPad = CreatePadArray(FNKPad, 64);
+                    CBKey = AddArray(CBKey, CBFNKPad);
+                    // append ciphered bytes and fnk to current block
+                    block = AddArray(block, OTPArray(block, CBKey));
+                    block = AddArray(block, FNK);
+
+                    #region seeding
+
+                    int SC = GenerateSeedConstant(block, computationIteration);
+                    Console.WriteLine($"Seed constant for round {computationIteration}: {SC}");
+
+                    Console.WriteLine();
+                    PrintArray(block, "State");
+                    //Console.WriteLine($"Rotating {block[brsIndex]} right...");
+                    //block = RotRight(block, block[brsIndex]);
+                    //PrintArray(block, "Rotated state");
+                    Console.WriteLine("Spiking...");
+                    BlockSpike(block);
+                    PrintArray(block, "Spiked state");
+                    Console.WriteLine("Jumping...");
+                    BlockJump(block);
+                    PrintArray(block, "Jumped state");
                 }
                 // move blocks
                 prevBlock = block;
                 block = null;
-                iter++;
+                computationIteration++;
             }
             Console.WriteLine("Finished hashing");
 
@@ -228,7 +275,7 @@ namespace ACH_1_Demonstrator
                         pad = null;
                         r = 0;
                     }
-                    else if (byteNameB1.Length != 64)
+                    else if (byteNameB1.Length != 64) // TODO: fix this bc i dont think its working
                     {
                         byteNameB1 = Encoding.ASCII.GetBytes(fileName);
                         int fullBlocks = byteNameB1.Length / 64;
@@ -321,42 +368,70 @@ namespace ACH_1_Demonstrator
         {
             readBytes = null;
             int? readCount = null;
-            // switch for init type
-            switch (initType)
+            using (FileStream fs = new FileStream((string)input, FileMode.Open))
             {
-                case InitType.file:
-                    using (FileStream fs = new FileStream((string)input, FileMode.Open))
-                    {
-                        fs.Position = this.readCount * computeIteration;
-                        int fileLength = (int)new FileInfo((string)input).Length;
-                        int count = Math.Min(fileLength - (computeIteration * this.readCount), this.readCount);
-                        readCount = fs.Read(readBytes ??= new byte[count], 0, count);
-                    }
-                    break;
-                case InitType.text:
-                    ;
-                    break;
-                case InitType.bytes:
-                    ;
-                    break;
+                fs.Position = this.readCount * computeIteration;
+                int fileLength = (int)new FileInfo((string)input).Length;
+                int count = Math.Min(fileLength - (computeIteration * this.readCount), this.readCount);
+                readCount = fs.Read(readBytes ??= new byte[count], 0, count);
             }
             return readCount ?? 0;
         }
 
         #region seeding functions
 
-        internal byte[] Spike(in byte[] input)
-        {
-            byte[] result = new byte[input.Length];
+        #region block seeders (2 requried)
+        // keep in mind these affect the block directly
 
-            return result;
+        private void BlockSpike(in byte[] block) // this is prone to going out of range on the blocks
+        {
+            for (int i = 0; i < block.Length; i++)
+                block[block[1023 - i] * spikeStrength] = (byte)((block[1023 - i] * spikeStrength) ^ (block[block[1023 - i]] * spikeStrength));
         }
 
-        internal byte[] Jump(in byte[] input)
+        private void BlockJump(in byte[] block) // this is causing nullref
         {
-            byte[] result = new byte[input.Length];
+            for (int i = 0; i <= input.Length; i++)
+            {
+                if (!(i >= 1022)) // if not overflowing
+                {
+                    byte newByt = (byte)((JumpConstant - input[i]) * input[i + 2]);
+                    if (newByt > 255)
+                        newByt %= (byte)Math.Pow(2, 32);
+                    input[i + 2] = newByt;
+                }
+                else
+                {
+                    byte newByt = (byte)((JumpConstant - input[i - 255]) * input[i - 253]);
+                    if (newByt > 255)
+                        newByt %= (byte)Math.Pow(2, 32);
+                    input[i - 253] = newByt;
+                }
+            }
+        }
 
-            return result;
+        #endregion
+
+        #region subblock seeding (4 required)
+
+        /// <summary>
+        /// A and B should have the same length ALWAYS, and should ALWAYS be fed subblocks only
+        /// </summary>
+        internal byte[] AddMod32(byte[] a, byte[] b)
+        {
+            byte[] output = new byte[a.Length];
+            for (int i = 0; i <= input.Length; i++)
+                output[i] = Convert.ToByte((a[i] + b[i]) % Math.Pow(2, 32));
+            return output;
+        }
+
+        #endregion
+
+        private int GenerateSeedConstant(in byte[] block, int computationIteration) // this doesnt work, not surprised lmao
+        {
+            // ok this is basically GSC(in B[], i) = f(i) = sin( (B[340] * (i + 10)) / 20) * cos((i + 10) ^ B[680]) ^ ( B[1020] * i)
+            int iterWOffset = computationIteration + 10;
+            return (int)Math.Sin(block[340] * iterWOffset / 20 * Math.Pow(Math.Cos(Math.Pow(iterWOffset, block[680])), block[1020] * iterWOffset)); // ouch
         }
 
         #endregion
@@ -422,13 +497,21 @@ namespace ACH_1_Demonstrator
             Console.WriteLine();
         }
         
-        private byte[] CreatePadArray(byte b, int s)
+        private byte[] CreatePadArray(byte b, int c)
         {
-            byte[] result = new byte[s];
-            for (int i = 0; i < s; i++)
+            byte[] result = new byte[c];
+            for (int i = 0; i < c; i++)
                 result[i] = b;
             return result;
         }
+
+        private byte[] RotRight(byte[] a, int amount)
+        { return a.Skip(a.Length - amount).Concat(a.Take(a.Length - amount)).ToArray(); }
+
+        private byte[] RotLeft(byte[] a, int amount)
+        { return a.Skip(amount).Concat(a.Take(amount)).ToArray(); }
+
+        #endregion
 
         #endregion
 
