@@ -391,7 +391,7 @@ namespace ACH_1_Demonstrator
                 mult = block[1023 - i] * spikeStrength;
                 if (mult > 1023)
                     mult = mult - 1023;
-                block[block[mult]] = (byte)(mult ^ block[mult]);
+                block[mult] = (byte)(mult ^ block[mult]);
             }
                 
         }
