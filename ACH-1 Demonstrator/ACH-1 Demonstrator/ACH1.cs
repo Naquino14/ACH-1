@@ -430,20 +430,15 @@ namespace ACH_1_Demonstrator
         {
             for (int i = 0; i <= block.Length; i++)
             {
+                int target;
+                byte newByt;
                 if (!(i >= 1022))
-                {
-                    byte newByt = (byte)((JumpConstant - block[i]) * block[i + 2]);
-                    if (newByt > 255)
-                        newByt %= (byte)Math.Pow(2, 32);
-                    block[i + 2] = newByt;
-                }
+                { target = i + 2; newByt = (byte)((JumpConstant - block[i]) * block[target]); }
                 else
-                {
-                    byte newByt = (byte)((JumpConstant - block[i - 255]) * block[i - 253]);
-                    if (newByt > 255)
-                        newByt %= (byte)Math.Pow(2, 32);
-                    block[i - 253] = newByt;
-                }
+                { target = i - 253; newByt = (byte)((JumpConstant - block[i - 255]) * block[target]); }
+                if (newByt > 255)
+                    newByt %= 255;
+                block[target] = newByt;
             }
         }
 
