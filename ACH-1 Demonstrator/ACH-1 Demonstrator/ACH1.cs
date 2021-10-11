@@ -33,7 +33,9 @@ namespace ACH_1_Demonstrator
         private readonly byte JumpConstant = 0xFF;
         private readonly byte MainSubblockPad = 0x15;
 
-        private readonly int brsIndex = 380; // block rotation sample index
+        private readonly int brs1Index = 380; // block rotation sample index
+        private readonly int brs2Index = 932; 
+        private readonly int brs3Index = 4; 
 
         private readonly int readCount = 448;
 
@@ -137,7 +139,7 @@ namespace ACH_1_Demonstrator
             int read;
             while (computeFlag)
             {
-                Console.WriteLine($"Iteration: {computationIteration}");
+                //Console.WriteLine($"Iteration: {computationIteration}");
                 computeFlag = false;
                 (int fullBlocks, int fileLength) seqBrInfo = (0, 0);
 
@@ -175,21 +177,15 @@ namespace ACH_1_Demonstrator
                     block = AddArray(block, FNK);
 
                     #region seeding
-
                     int SC = GenerateSeedConstant(block, computationIteration);
                     Console.WriteLine($"Seed constant for round {computationIteration}: {SC}");
 
-                    Console.WriteLine();
-                    PrintArray(block, "State");
-                    //Console.WriteLine($"Rotating {block[brsIndex]} right...");
-                    //block = RotRight(block, block[brsIndex]);
-                    //PrintArray(block, "Rotated state");
-                    Console.WriteLine("Spiking...");
+                    block = RotRight(block, block[brs1Index]);
                     BlockSpike(block);
-                    PrintArray(block, "Spiked state");
-                    Console.WriteLine("Jumping...");
+                    block = RotLeft(block, block[brs2Index]);
                     BlockJump(block);
-                    PrintArray(block, "Jumped state");
+                    block = RotRight(block, block[brs3Index]);
+                    #endregion
                 }
                 // move blocks
                 prevBlock = block;
@@ -437,8 +433,23 @@ namespace ACH_1_Demonstrator
         private int GenerateSeedConstant(in byte[] block, int computationIteration) // this doesnt work, not surprised lmao
         {
             // ok this is basically GSC(in B[], i) = f(i) = sin( (B[340] * (i + 10)) / 20) * cos((i + 10) ^ B[680]) ^ ( B[1020] * i)
-            int iterWOffset = computationIteration + 10;
-            return (int)Math.Sin(block[340] * iterWOffset / 20 * Math.Pow(Math.Cos(Math.Pow(iterWOffset, block[680])), block[1020] * iterWOffset)); // ouch
+            // this needs to be able to deal with huge computation iterations.
+            computationIteration %= 47; // after a CI of mod 256 the output SC is stuck at 192 and fluctuates rarely, but anything below a CI of 47 seems to be random.
+            float t1 = MathF.Sin(block[340] * computationIteration / 20);
+            float t2 = MathF.Cos(MathF.Pow(computationIteration, (block[680] / 10)));
+            float t3 = (block[1020] * computationIteration + 1) / 100;
+            t2 = MathF.Pow(t2, t3);
+            float val =  t1 * t2;
+            byte[] vb = BitConverter.GetBytes(val);
+            vb = RotLeft(vb, 9); // IEEE754 says that the fraction starts at byte 9
+
+            byte? result = null;
+
+            foreach (byte byt in vb)
+                if (byt != 0x0)
+                { result = byt; break; }
+
+            return result ?? 0;
         }
 
         #endregion
@@ -522,6 +533,5 @@ namespace ACH_1_Demonstrator
 
         #endregion
 
-        #endregion
     }
 }
