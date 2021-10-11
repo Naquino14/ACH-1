@@ -383,29 +383,36 @@ namespace ACH_1_Demonstrator
         #region block seeders (2 requried)
         // keep in mind these affect the block directly
 
-        private void BlockSpike(in byte[] block) // this is prone to going out of range on the blocks
+        private void BlockSpike(in byte[] block)
         {
+            int mult = 0;
             for (int i = 0; i < block.Length; i++)
-                block[block[1023 - i] * spikeStrength] = (byte)((block[1023 - i] * spikeStrength) ^ (block[block[1023 - i]] * spikeStrength));
+            {
+                mult = block[1023 - i] * spikeStrength;
+                if (mult > 1023)
+                    mult = mult - 1023;
+                block[block[mult]] = (byte)(mult ^ block[mult]);
+            }
+                
         }
 
         private void BlockJump(in byte[] block) // this is causing nullref
         {
-            for (int i = 0; i <= input.Length; i++)
+            for (int i = 0; i <= block.Length; i++)
             {
                 if (!(i >= 1022)) // if not overflowing
                 {
-                    byte newByt = (byte)((JumpConstant - input[i]) * input[i + 2]);
+                    byte newByt = (byte)((JumpConstant - block[i]) * block[i + 2]);
                     if (newByt > 255)
                         newByt %= (byte)Math.Pow(2, 32);
-                    input[i + 2] = newByt;
+                    block[i + 2] = newByt;
                 }
                 else
                 {
-                    byte newByt = (byte)((JumpConstant - input[i - 255]) * input[i - 253]);
+                    byte newByt = (byte)((JumpConstant - block[i - 255]) * block[i - 253]);
                     if (newByt > 255)
                         newByt %= (byte)Math.Pow(2, 32);
-                    input[i - 253] = newByt;
+                    block[i - 253] = newByt;
                 }
             }
         }
