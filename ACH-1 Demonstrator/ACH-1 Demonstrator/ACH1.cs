@@ -65,6 +65,10 @@ namespace ACH_1_Demonstrator
 
         #region initialization and disposal methods
 
+        /// <summary>
+        /// Create an instance of ACH-1 with the specified hash input type.
+        /// </summary>
+        /// <param name="initType">The initialization type for the input.</param>
         public ACH1(InitType initType) => this.initType = initType;
 
 
@@ -155,7 +159,7 @@ namespace ACH_1_Demonstrator
             int read;
             while (computeFlag)
             {
-                Console.WriteLine($"Iteration: {computationIteration}");
+                //Console.WriteLine($"Iteration: {computationIteration}");
 
                 #region getting the next main subblock
 
@@ -199,6 +203,9 @@ namespace ACH_1_Demonstrator
                 block = AddArray(block, OTPArray(block, CBKey));
                 block = AddArray(block, FNK);
 
+                if (computationIteration > 0)
+                    block = OTPArray(block, prevBlock);
+
                 #endregion
 
                 #region block seeding
@@ -230,7 +237,7 @@ namespace ACH_1_Demonstrator
             Console.WriteLine("Finished hashing");
 
             Clear();
-            return output;
+            return prevBlock;
         }
 
         #endregion
@@ -365,6 +372,7 @@ namespace ACH_1_Demonstrator
                     #endregion
 
                 #region InitType.bytes
+
                 case InitType.bytes:
                     byteNameB1 = new byte[64];
                     byteNameB2 = new byte[byteNameB1.Length];
@@ -385,6 +393,7 @@ namespace ACH_1_Demonstrator
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
+
                     #endregion
             }
 
@@ -449,11 +458,11 @@ namespace ACH_1_Demonstrator
         /// <summary>
         /// A and B should have the same length ALWAYS, and should ALWAYS be fed subblocks only
         /// </summary>
-        internal byte[] AddMod32(byte[] a, byte[] b)
+        private byte[] AddMod7(byte[] a, byte[] b)
         {
             byte[] output = new byte[a.Length];
-            for (int i = 0; i <= input.Length; i++)
-                output[i] = Convert.ToByte((a[i] + b[i]) % Math.Pow(2, 32));
+            for (int i = 0; i <= a.Length; i++)
+                output = AddByteToArray(output, (byte)(128 % (a[i] + b[i])));
             return output;
         }
 
