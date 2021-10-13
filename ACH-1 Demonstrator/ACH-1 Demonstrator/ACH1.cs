@@ -34,12 +34,15 @@ namespace ACH_1_Demonstrator
         private readonly byte MainSubblockPad = 0x15;
 
         private readonly int brs1Index = 380; // block rotation sample index
-        private readonly int brs2Index = 932; 
-        private readonly int brs3Index = 4; 
+        private readonly int brs2Index = 932;
+        private readonly int brs3Index = 4;
 
         private readonly int readCount = 448;
 
         private readonly int spikeStrength = 4;
+
+        private readonly byte BBC1 = 0xD6;
+        private readonly byte BBC2 = 0x4A;
 
         #endregion
 
@@ -159,7 +162,7 @@ namespace ACH_1_Demonstrator
             int read;
             while (computeFlag)
             {
-                //Console.WriteLine($"Iteration: {computationIteration}");
+                Console.WriteLine($"Iteration: {computationIteration}");
 
                 #region getting the next main subblock
 
@@ -183,9 +186,9 @@ namespace ACH_1_Demonstrator
                         //break;
                         case InitType.stream:
                             throw new NotImplementedException();
-                        //break;
+                            //break;
                     }
-                         
+
                 }
 
                 #endregion
@@ -224,6 +227,15 @@ namespace ACH_1_Demonstrator
 
                 // there are a ratio of 2:1 for subblocks:functions, so in this case i have 4 functions, and 8 subblocks named A,B,C,D,E,F,G,H
                 // see notebook for method
+
+                // create subblocks
+
+                byte[][] sbs = new byte[8][];
+                for (int i = 0; i <= sbs.Length; i++)
+                { Console.WriteLine(i); sbs[i] = new byte[128]; Array.Copy(block, (i * 128) - 1, sbs[i], 0, 128); }
+
+                foreach (byte[] sb in sbs)
+                { PrintArray(sb); Console.WriteLine(); }
 
                 #endregion
 
@@ -308,7 +320,7 @@ namespace ACH_1_Demonstrator
                         r = 64 - byteNameB1.Length;
                         pad = CreatePadArray(FNKPad, r);
                         byteNameB1 = AddArray(byteNameB1, pad);
-                        
+
                         pad = null;
                         r = 0;
                     }
@@ -343,7 +355,7 @@ namespace ACH_1_Demonstrator
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
 
-                    #endregion
+                #endregion
 
                 #region InitType.text
 
@@ -369,7 +381,7 @@ namespace ACH_1_Demonstrator
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
 
-                    #endregion
+                #endregion
 
                 #region InitType.bytes
 
@@ -417,7 +429,7 @@ namespace ACH_1_Demonstrator
             return readCount ?? 0;
         }
 
-        #region seeding functions
+        #region seeding and subblock functions
 
         #region block seeders (2 requried)
         // keep in mind these affect the block directly
@@ -432,7 +444,7 @@ namespace ACH_1_Demonstrator
                     mult = mult - 1023;
                 block[mult] = (byte)(mult ^ block[mult]);
             }
-                
+
         }
 
         private void BlockJump(in byte[] block)
@@ -453,18 +465,82 @@ namespace ACH_1_Demonstrator
 
         #endregion
 
-        #region subblock seeding (4 required)
+        #region subblock functions (4 required)
 
         /// <summary>
         /// A and B should have the same length ALWAYS, and should ALWAYS be fed subblocks only
         /// </summary>
-        private byte[] AddMod7(byte[] a, byte[] b)
+        private byte[] AddMod8(byte[] a, byte[] b)
         {
-            byte[] output = new byte[a.Length];
+            byte[] o = new byte[a.Length];
             for (int i = 0; i <= a.Length; i++)
-                output = AddByteToArray(output, (byte)(128 % (a[i] + b[i])));
+                o[i] = (byte)(256 % (a[i] + b[i]));
+            return o;
+        }
+
+        // depricated
+        private byte[] ByteBump(in byte[] subBlock, int seedConstant)
+        {
+            byte[] output = new byte[subBlock.Length];
+            byte t1, t2;
+            int i_;
+            for (int i = 0; i <= subBlock.Length + 1; i++)
+            {
+                Console.WriteLine($"Iteration: {i}");
+                if (i == 0)
+                    i += 1;
+                i_ = 255 % i;
+                if (i_ == 0)
+                    i_ += 1;
+                if (seedConstant == 0)
+                    seedConstant += 1;
+                int modConst = 255 % (seedConstant * i_);
+                if (modConst == 0)
+                    modConst += 6;
+                t1 = (byte)(subBlock[modConst] * BBC1);
+                t2 = (byte)(subBlock[128 - modConst] * BBC2);
+                output[i_] = (byte)(t1 ^ t2);
+            }
             return output;
         }
+
+        private byte[] M1(byte[] a, byte[] b, byte[] c, int sc)
+        {
+            byte[] o = new byte[a.Length];
+            for (int i = 0; i <= a.Length; i++)
+                o[i] = (byte)((a[i] ^ (255 % (b[i] * sc))) & (~a[i] ^ c[i]) ^ ~(b[i] ^ c[i]));
+            return o;
+        }
+        //compress this v
+        //byte[] t1 = new byte[a.Length], 
+        //    t2 = new byte[a.Length], 
+        //    t3 = new byte[a.Length], 
+        //    ba = new byte[a.Length];
+
+        //for (int i = 0; i <= a.Length; i++)
+        //{
+        //    ba[i] = (byte)(255 % (b[i] * sc));
+        //    t1[i] = (byte)(a[i] ^ ba[i]);
+        //    t2[i] = (byte)(~a[i] ^ c[i]);
+        //    t3[i] = (byte)~(b[i] ^ c[i]);
+        //    output[i] = (byte)(t1[i] & t2[i] ^ t3[i]);
+        //}
+
+        private byte[] M2(byte[] a, byte[] b, byte[] c, int sc)
+        {
+            byte[] o = new byte[a.Length];
+            for (int i = 0; i<= a.Length; i++)
+                o[i] = (byte)(~((~a[i] & b[i]) ^ (a[i] & c[i]) ^ (~(b[i] & (255 % (c[i] * sc))))) ^ (a[i] ^ b[i]) ^ (b[i] ^ c[i]));
+            return o;
+        }
+        // compress this v
+        //byte t1, t2, t3, t4, t5;
+        //t1 = (byte)(~a[i] & b[i]);
+        //t2 = (byte)(a[i] & c[i]);
+        //t3 = (byte)~(b[i] & (255 % (c[i] * sc)));
+        //t4 = (byte)(a[i] ^ b[i]);
+        //t5 = (byte)(b[i] ^ c[i]);
+        //o[i] = (byte)(~((t1) ^ (t2) ^ (t3)) ^ (t4) ^ (t5));
 
         #endregion
 
@@ -476,7 +552,7 @@ namespace ACH_1_Demonstrator
             float t2 = MathF.Cos(MathF.Pow(computationIteration, block[680] / 10));
             float t3 = (block[1020] * computationIteration + 1) / 100;
             t2 = MathF.Pow(t2, t3);
-            float val =  t1 * t2;
+            float val = t1 * t2;
             byte[] vb = BitConverter.GetBytes(val);
             vb = RotLeft(vb, 9); // IEEE754 says that the fraction starts at byte 9
 
