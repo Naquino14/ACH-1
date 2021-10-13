@@ -230,6 +230,7 @@ namespace ACH_1_Demonstrator
 
                 // create subblocks
 
+                // OOR on one of the arrays :raised_eyebrow:
                 byte[][] sbs = new byte[8][];
                 for (int i = 0; i <= sbs.Length; i++)
                 { Console.WriteLine(i); sbs[i] = new byte[128]; Array.Copy(block, (i * 128) - 1, sbs[i], 0, 128); }
@@ -511,20 +512,6 @@ namespace ACH_1_Demonstrator
                 o[i] = (byte)((a[i] ^ (255 % (b[i] * sc))) & (~a[i] ^ c[i]) ^ ~(b[i] ^ c[i]));
             return o;
         }
-        //compress this v
-        //byte[] t1 = new byte[a.Length], 
-        //    t2 = new byte[a.Length], 
-        //    t3 = new byte[a.Length], 
-        //    ba = new byte[a.Length];
-
-        //for (int i = 0; i <= a.Length; i++)
-        //{
-        //    ba[i] = (byte)(255 % (b[i] * sc));
-        //    t1[i] = (byte)(a[i] ^ ba[i]);
-        //    t2[i] = (byte)(~a[i] ^ c[i]);
-        //    t3[i] = (byte)~(b[i] ^ c[i]);
-        //    output[i] = (byte)(t1[i] & t2[i] ^ t3[i]);
-        //}
 
         private byte[] M2(byte[] a, byte[] b, byte[] c, int sc)
         {
@@ -533,14 +520,6 @@ namespace ACH_1_Demonstrator
                 o[i] = (byte)(~((~a[i] & b[i]) ^ (a[i] & c[i]) ^ (~(b[i] & (255 % (c[i] * sc))))) ^ (a[i] ^ b[i]) ^ (b[i] ^ c[i]));
             return o;
         }
-        // compress this v
-        //byte t1, t2, t3, t4, t5;
-        //t1 = (byte)(~a[i] & b[i]);
-        //t2 = (byte)(a[i] & c[i]);
-        //t3 = (byte)~(b[i] & (255 % (c[i] * sc)));
-        //t4 = (byte)(a[i] ^ b[i]);
-        //t5 = (byte)(b[i] ^ c[i]);
-        //o[i] = (byte)(~((t1) ^ (t2) ^ (t3)) ^ (t4) ^ (t5));
 
         #endregion
 
@@ -584,22 +563,6 @@ namespace ACH_1_Demonstrator
             return result;
         }
 
-        private byte[] AddByteToArray(byte[] a, byte b)
-        {
-            byte[] result = new byte[a.Length + 1];
-            a.CopyTo(result, 0);
-            result[result.Length - 1] = b;
-            return result;
-        }
-
-        private byte[] Check64ByteFit(byte[] input)
-        {
-            if (input.Length > 64)
-            { FCArray(input, 0, 64); return input; }
-            else
-                return input;
-        }
-
         private byte[] OTPArray (byte[] input, byte[] key)
         {
             byte[] result = new byte[input.Length];
@@ -608,18 +571,7 @@ namespace ACH_1_Demonstrator
             return result;
         }
 
-        private byte[] OTPFit (byte[] input, byte[] key)
-        {
-            byte[] result = new byte[input.Length];
-            byte[] fit = new byte[key.Length];
-            for (int i = 0; i <= key.Length; i++)
-                fit[i] = (byte)(input[i] ^ key[i]);
-            input.CopyTo(result, 0);
-            fit.CopyTo(result, 0);
-            return result;
-        }
-
-        void PrintArray(byte[] array, string name = "")
+        private void PrintArray(byte[] array, string name = "")
         {
             if (name != "")
                 Console.Write($"{name}: ");
