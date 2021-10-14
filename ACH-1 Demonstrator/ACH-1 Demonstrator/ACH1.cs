@@ -263,6 +263,53 @@ namespace ACH_1_Demonstrator
                 for (int i = 0; i <= tsbs.Length - 1; i++)
                     tsbs[i] = new byte[128];
 
+                // get func results
+
+                byte[] m1o = M1(sbs[e], sbs[f], sbs[g], SeedConstant),
+                    m2o = M2(sbs[c], sbs[b], sbs[a], SeedConstant),
+                    rm1o = RM1(sbs[h], SeedConstant),
+                    rm2o = RM2(sbs[g], SeedConstant);
+
+                // pad seed constant and feed it downrange
+                byte[] scp = CreatePadArray((byte)SeedConstant, 128);
+
+                byte[] drc = AddMod8(m1o, scp); // downrange compression
+                drc = AddMod8(m2o, drc);
+                drc = AddMod8(rm1o, drc);
+                drc = AddMod8(rm2o, drc);
+
+                // IN ORDER, assign targets
+
+                tsbs[a] = rm1o;
+                tsbs[b] = rm2o;
+                // split result at path C
+                byte[] rc = AddMod8(m1o, sbs[c]);
+                tsbs[c] = AddMod8(sbs[a], rc);
+                // split result at path D
+                byte[] rd = AddMod8(drc, sbs[d]);
+                tsbs[d] = AddMod8(sbs[b], rd);
+                // split result at path E
+                byte[] re = AddMod8(m2o, sbs[e]);
+                tsbs[e] = rc;
+                tsbs[f] = rd;
+                tsbs[g] = re;
+                tsbs[h] = AddMod8(re, sbs[f]);
+
+                // copy results to block (lazy route moment)
+
+                block = null;
+                block = AddArray(block, tsbs[a]);
+                block = AddArray(block, tsbs[b]);
+                block = AddArray(block, tsbs[c]);
+                block = AddArray(block, tsbs[d]);
+                block = AddArray(block, tsbs[e]);
+                block = AddArray(block, tsbs[f]);
+                block = AddArray(block, tsbs[g]);
+                block = AddArray(block, tsbs[h]);
+
+                // clear subblocks
+                sbs = null;
+                tsbs = null;
                 #endregion
 
                 prevBlock = block;
