@@ -20,8 +20,7 @@ namespace ACH_1_Demonstrator
         private byte[] prevBlock;
         private byte[] block;
 
-        private byte[] output = new byte[1024];
-        private byte[] input;
+
 
         private byte[] FNK = new byte[128];
 
@@ -40,9 +39,6 @@ namespace ACH_1_Demonstrator
         private readonly int readCount = 448;
 
         private readonly int spikeStrength = 4;
-
-        private readonly byte BBC1 = 0xD6,
-            BBC2 = 0x4A;
 
         private readonly int RMC2MC1 = 150,
             RMC2MC2 = 26,
@@ -106,8 +102,6 @@ namespace ACH_1_Demonstrator
                 {
                     prevBlock = null;
                     block = null;
-                    output = null;
-                    input = null;
 
                     disposedValue = true;
                 }
@@ -146,17 +140,9 @@ namespace ACH_1_Demonstrator
 
                 var match = TypeMatch(input);
                 if (!match.success)
-                    throw new ArgumentException("Parameter input has an invalid type " + input.GetType() + ".");
-                switch (match.type)
-                {
-                    case Type.tByte:
-                        this.input = (byte[])input;
-                        break;
-                    case Type.tString:
-                        pathFlag = true;
-                        break;
-                    case Type.notFound: break;
-                }
+                    throw new ArgumentException($"Parameter input has an invalid type {input.GetType()}.");
+                if (initType == InitType.file)
+                    pathFlag = true;
 
                 #endregion
 
@@ -200,17 +186,20 @@ namespace ACH_1_Demonstrator
                     computeFlag = !(read < readCount); // true if the computation isnt finished
                 } else
                 {
+                    int targetIndex = readCount * computationIteration;
                     switch (initType)
                     {
                         case InitType.bytes:
-                            throw new NotImplementedException();
-                        //break;
+                            Array.Copy((byte[])input, targetIndex, block, targetIndex, readCount);
+                            computeFlag = !(block.Length < readCount);
+                        break;
                         case InitType.text:
-                            throw new NotImplementedException();
-                        //break;
+                            Array.Copy(Encoding.ASCII.GetBytes((string)input), targetIndex, block, targetIndex, readCount);
+                        break;
                         case InitType.stream:
-                            throw new NotImplementedException();
-                            //break;
+                            read = SeqSR((Stream)input, computationIteration, out block);
+                            computeFlag = !(read < readCount);
+                            break;
                     }
 
                 }
@@ -339,8 +328,6 @@ namespace ACH_1_Demonstrator
         /// </summary>
         public void Clear()
         {
-            output = null;
-            input = null;
             SeedConstant = 0;
             block = null;
             prevBlock = null;
@@ -497,6 +484,30 @@ namespace ACH_1_Demonstrator
             return readCount ?? 0;
         }
 
+        private int SeqSR(object input, int computeIteration, out byte[] readBytes) // sequential streamreader
+        {
+            System.Type inputType = input.GetType();
+            readBytes = null;
+            int? readCount = null;
+
+            if (inputType == typeof(Stream))
+            {
+                
+            }
+            else if (inputType == typeof(FileStream))
+            {
+
+            }
+            else if (inputType == typeof(MemoryStream))
+            {
+
+            }
+            else
+                throw new ArgumentException($"Parameter input has an invalid type {input.GetType()}.");
+                    
+            return readCount ?? 0;
+        }
+
         #region seeding and subblock functions
 
         #region block seeders (2 requried)
@@ -546,7 +557,7 @@ namespace ACH_1_Demonstrator
             return o;
         }
 
-        private byte[] M1(byte[] a, byte[] b, byte[] c, int sc) // div by 0
+        private byte[] M1(byte[] a, byte[] b, byte[] c, int sc)
         {
             byte[] o = new byte[a.Length];
             for (int i = 0; i <= a.Length - 1; i++)
@@ -554,7 +565,7 @@ namespace ACH_1_Demonstrator
             return o;
         }
 
-        private byte[] M2(byte[] a, byte[] b, byte[] c, int sc) // OOR?
+        private byte[] M2(byte[] a, byte[] b, byte[] c, int sc)
         {
             byte[] o = new byte[a.Length];
             for (int i = 0; i<= a.Length - 1; i++)

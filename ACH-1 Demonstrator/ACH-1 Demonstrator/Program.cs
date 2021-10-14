@@ -60,7 +60,8 @@ namespace ACH_1_Demonstrator
                     case "-text":
                         ;
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.text))
-                            ; // parse args[1] as byte[] and feed into ACH1
+                            foreach (byte byt in ach1.ComputeHash(args[1]))
+                                Console.Write(byt.ToString("X"));
                         break;
                     case "-stream":
                         using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
