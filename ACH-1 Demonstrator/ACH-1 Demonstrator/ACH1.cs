@@ -49,13 +49,13 @@ namespace ACH_1_Demonstrator
             RMC2MC3 = 240;
 
         private readonly int a = 0,
-            b = 128,
-            c = 256,
-            d = 384,
-            e = 512,
-            f = 640,
-            g = 768,
-            h = 896;
+            b = 1,
+            c = 2,
+            d = 3,
+            e = 4,
+            f = 5,
+            g = 6,
+            h = 7;
 
         // dynamic constants
 
@@ -238,6 +238,7 @@ namespace ACH_1_Demonstrator
                 #region block seeding
 
                 SeedConstant = GSC(block, computationIteration);
+                Console.WriteLine($"Seed Constant: {SeedConstant}");
 
                 block = RotRight(block, block[brs1Index]);
                 BlockSpike(block);
@@ -297,15 +298,8 @@ namespace ACH_1_Demonstrator
 
                 // copy results to block (lazy route moment)
 
-                block = null;
-                block = AddArray(block, tsbs[a]);
-                block = AddArray(block, tsbs[b]);
-                block = AddArray(block, tsbs[c]);
-                block = AddArray(block, tsbs[d]);
-                block = AddArray(block, tsbs[e]);
-                block = AddArray(block, tsbs[f]);
-                block = AddArray(block, tsbs[g]);
-                block = AddArray(block, tsbs[h]);
+                for (int i = 0; i <= sbs.Length - 1; i++)
+                    Array.Copy(sbs[i], 0, block, 0, 128);
 
                 // clear subblocks
                 sbs = null;
@@ -320,8 +314,6 @@ namespace ACH_1_Demonstrator
             #endregion
 
             Console.WriteLine("Finished hashing");
-
-            Clear();
             return prevBlock;
         }
 
@@ -549,50 +541,24 @@ namespace ACH_1_Demonstrator
         private byte[] AddMod8(byte[] a, byte[] b)
         {
             byte[] o = new byte[a.Length];
-            for (int i = 0; i <= a.Length; i++)
-                o[i] = (byte)(256 % (a[i] + b[i]));
+            for (int i = 0; i <= a.Length - 1; i++)
+                o[i] = (byte)((a[i] + b[i]) % 255);
             return o;
         }
 
-        // depricated
-        private byte[] ByteBump(in byte[] subBlock, int seedConstant)
-        {
-            byte[] output = new byte[subBlock.Length];
-            byte t1, t2;
-            int i_;
-            for (int i = 0; i <= subBlock.Length + 1; i++)
-            {
-                Console.WriteLine($"Iteration: {i}");
-                if (i == 0)
-                    i += 1;
-                i_ = 255 % i;
-                if (i_ == 0)
-                    i_ += 1;
-                if (seedConstant == 0)
-                    seedConstant += 1;
-                int modConst = 255 % (seedConstant * i_);
-                if (modConst == 0)
-                    modConst += 6;
-                t1 = (byte)(subBlock[modConst] * BBC1);
-                t2 = (byte)(subBlock[128 - modConst] * BBC2);
-                output[i_] = (byte)(t1 ^ t2);
-            }
-            return output;
-        }
-
-        private byte[] M1(byte[] a, byte[] b, byte[] c, int sc)
+        private byte[] M1(byte[] a, byte[] b, byte[] c, int sc) // div by 0
         {
             byte[] o = new byte[a.Length];
-            for (int i = 0; i <= a.Length; i++)
-                o[i] = (byte)((a[i] ^ (255 % (b[i] * sc))) & (~a[i] ^ c[i]) ^ ~(b[i] ^ c[i]));
+            for (int i = 0; i <= a.Length - 1; i++)
+            o[i] = (byte)((a[i] ^ (b[i] * sc % 255)) & (~a[i] ^ c[i]) ^ ~(b[i] ^ c[i]));
             return o;
         }
 
-        private byte[] M2(byte[] a, byte[] b, byte[] c, int sc)
+        private byte[] M2(byte[] a, byte[] b, byte[] c, int sc) // OOR?
         {
             byte[] o = new byte[a.Length];
-            for (int i = 0; i<= a.Length; i++)
-                o[i] = (byte)(~((~a[i] & b[i]) ^ (a[i] & c[i]) ^ (~(b[i] & (255 % (c[i] * sc))))) ^ (a[i] ^ b[i]) ^ (b[i] ^ c[i]));
+            for (int i = 0; i<= a.Length - 1; i++)
+                o[i] = (byte)(~((~a[i] & b[i]) ^ (a[i] & c[i]) ^ (~(b[i] & (c[i] * sc % 255)))) ^ (a[i] ^ b[i]) ^ (b[i] ^ c[i]));
             return o;
         }
 
@@ -601,13 +567,13 @@ namespace ACH_1_Demonstrator
             byte[] o = new byte[a.Length];
             if (sc == 0)
                 sc += 11;
-            RMC1C1 = (byte)(255 % (RMC1C1 * sc));
-            RMC1C2 = (byte)(255 % (RMC1C2 * sc));
-            RMC1C3 = (byte)(255 % (RMC1C3 * sc));
+            RMC1C1 = (byte)(RMC1C1 * sc % 255);
+            RMC1C2 = (byte)(RMC1C2 * sc % 255);
+            RMC1C3 = (byte)(RMC1C3 * sc % 255);
             byte[] t1 = RotLeft(a, RMC1C1),
                 t2 = RotRight(a, RMC1C2),
                 t3 = RotLeft(a, RMC1C3);
-            for (int i = 0; i <= a.Length; i++)
+            for (int i = 0; i <= a.Length - 1; i++)
                 o[i] = (byte)(t1[i] ^ t2[i] ^ t3[i]);
             return o;
         }
@@ -623,7 +589,7 @@ namespace ACH_1_Demonstrator
             byte[] t1 = RotRight(a, RMC2C1),
                 t2 = RotLeft(a, RMC2C2),
                 t3 = RotRight(a, RMC2C3);
-            for (int i = 0; i <= a.Length; i++)
+            for (int i = 0; i <= a.Length - 1; i++)
                 o[i] = (byte)(t1[i] ^ t2[i] ^ t3[i]);
             return o;
         }
@@ -632,6 +598,8 @@ namespace ACH_1_Demonstrator
 
         private int GSC(in byte[] block, int ci)
         {
+            if (ci == 0)
+                ci += 13;
             ci %= 47; // this is the best* limit for randomness
             float t1 = MathF.Sin(block[340] * ci / 20);
             float t2 = MathF.Cos(MathF.Pow(ci, block[680] / 10));
