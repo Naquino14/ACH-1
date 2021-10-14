@@ -44,6 +44,22 @@ namespace ACH_1_Demonstrator
         private readonly byte BBC1 = 0xD6;
         private readonly byte BBC2 = 0x4A;
 
+        private readonly int RMC2MC1 = 150;
+        private readonly int RMC2MC2 = 26;
+        private readonly int RMC2MC3 = 240;
+
+        // dynamic constants
+
+        private int SeedConstant;
+
+        private byte RMC1C1 = 0x50;
+        private byte RMC1C2 = 0x78;
+        private byte RMC1C3 = 0x05;
+
+        private byte RMC2C1 = 0x96;
+        private byte RMC2C2 = 0x1A;
+        private byte RMC2C3 = 0xF0;
+
         #endregion
 
         #region enums
@@ -213,7 +229,7 @@ namespace ACH_1_Demonstrator
 
                 #region block seeding
 
-                int SC = GenerateSeedConstant(block, computationIteration);
+                SeedConstant = GSC(block, computationIteration);
 
                 block = RotRight(block, block[brs1Index]);
                 BlockSpike(block);
@@ -277,6 +293,9 @@ namespace ACH_1_Demonstrator
         {
             output = null;
             input = null;
+            SeedConstant = 0;
+            block = null;
+            prevBlock = null;
         }
 
         /// <summary>
@@ -521,15 +540,46 @@ namespace ACH_1_Demonstrator
             return o;
         }
 
+        private byte[] RM1(byte[] a, int sc)
+        {
+            byte[] o = new byte[a.Length];
+            if (sc == 0)
+                sc += 11;
+            RMC1C1 = (byte)(255 % (RMC1C1 * sc));
+            RMC1C2 = (byte)(255 % (RMC1C2 * sc));
+            RMC1C3 = (byte)(255 % (RMC1C3 * sc));
+            byte[] t1 = RotLeft(a, RMC1C1),
+                t2 = RotRight(a, RMC1C2),
+                t3 = RotLeft(a, RMC1C3);
+            for (int i = 0; i <= a.Length; i++)
+                o[i] = (byte)(t1[i] ^ t2[i] ^ t3[i]);
+            return o;
+        }
+
+        private byte[] RM2(byte[] a, int sc)
+        {
+            byte[] o = new byte[a.Length];
+            if (sc == 0)
+                sc += 12;
+            RMC2C1 = (byte)(RMC2MC1 % sc);
+            RMC2C2 = (byte)(RMC2MC2 % sc);
+            RMC2C3 = (byte)(RMC2MC3 % sc);
+            byte[] t1 = RotRight(a, RMC2C1),
+                t2 = RotLeft(a, RMC2C2),
+                t3 = RotRight(a, RMC2C3);
+            for (int i = 0; i <= a.Length; i++)
+                o[i] = (byte)(t1[i] ^ t2[i] ^ t3[i]);
+            return o;
+        }
+
         #endregion
 
-        private int GenerateSeedConstant(in byte[] block, int computationIteration)
+        private int GSC(in byte[] block, int ci)
         {
-            // GSC(in B[], i) = f(i) = sin( (B[340] * (i + 10)) / 20) * cos((i + 10) ^ B[680]) ^ ( B[1020] * i)
-            computationIteration %= 47;
-            float t1 = MathF.Sin(block[340] * computationIteration / 20);
-            float t2 = MathF.Cos(MathF.Pow(computationIteration, block[680] / 10));
-            float t3 = (block[1020] * computationIteration + 1) / 100;
+            ci %= 47; // this is the best* limit for randomness
+            float t1 = MathF.Sin(block[340] * ci / 20);
+            float t2 = MathF.Cos(MathF.Pow(ci, block[680] / 10));
+            float t3 = (block[1020] * ci + 1) / 100;
             t2 = MathF.Pow(t2, t3);
             float val = t1 * t2;
             byte[] vb = BitConverter.GetBytes(val);
@@ -598,5 +648,21 @@ namespace ACH_1_Demonstrator
 
         #endregion
 
+        #region events
+
+
+
+        #endregion
+
+    }
+
+    public class ACHEventArgs : EventArgs 
+    {
+        public Message message;
+        public enum Message
+        {
+            fail,
+            success
+        }
     }
 }
