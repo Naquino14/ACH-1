@@ -29,36 +29,44 @@ namespace ACH_1_Demonstrator
 
         #region constants
 
-        private readonly byte FNKPad = 0xAA;
-        private readonly byte JumpConstant = 0xFF;
-        private readonly byte MainSubblockPad = 0x15;
+        private readonly byte FNKPad = 0xAA,
+            JumpConstant = 0xFF,
+            MainSubblockPad = 0x15;
 
-        private readonly int brs1Index = 380; // block rotation sample index
-        private readonly int brs2Index = 932;
-        private readonly int brs3Index = 4;
+        private readonly int brs1Index = 380, // block rotation sample index
+            brs2Index = 932,
+            brs3Index = 4;
 
         private readonly int readCount = 448;
 
         private readonly int spikeStrength = 4;
 
-        private readonly byte BBC1 = 0xD6;
-        private readonly byte BBC2 = 0x4A;
+        private readonly byte BBC1 = 0xD6,
+            BBC2 = 0x4A;
 
-        private readonly int RMC2MC1 = 150;
-        private readonly int RMC2MC2 = 26;
-        private readonly int RMC2MC3 = 240;
+        private readonly int RMC2MC1 = 150,
+            RMC2MC2 = 26,
+            RMC2MC3 = 240;
+
+        private readonly int a = 0,
+            b = 128,
+            c = 256,
+            d = 384,
+            e = 512,
+            f = 640,
+            g = 768,
+            h = 896;
 
         // dynamic constants
 
         private int SeedConstant;
 
-        private byte RMC1C1 = 0x50;
-        private byte RMC1C2 = 0x78;
-        private byte RMC1C3 = 0x05;
-
-        private byte RMC2C1 = 0x96;
-        private byte RMC2C2 = 0x1A;
-        private byte RMC2C3 = 0xF0;
+        private byte RMC1C1 = 0x50,
+            RMC1C2 = 0x78,
+            RMC1C3 = 0x05,
+            RMC2C1 = 0x96,
+            RMC2C2 = 0x1A,
+            RMC2C3 = 0xF0;
 
         #endregion
 
@@ -246,13 +254,14 @@ namespace ACH_1_Demonstrator
 
                 // create subblocks
 
-                // OOR on one of the arrays :raised_eyebrow:
                 byte[][] sbs = new byte[8][];
-                for (int i = 0; i <= sbs.Length; i++)
-                { Console.WriteLine(i); sbs[i] = new byte[128]; Array.Copy(block, (i * 128) - 1, sbs[i], 0, 128); }
+                for (int i = 0; i <= sbs.Length - 1; i++)
+                { sbs[i] = new byte[128]; Array.Copy(block, i * 128, sbs[i], 0, 128); }
 
-                foreach (byte[] sb in sbs)
-                { PrintArray(sb); Console.WriteLine(); }
+                // create target sbs
+                byte[][] tsbs = new byte[8][];
+                for (int i = 0; i <= tsbs.Length - 1; i++)
+                    tsbs[i] = new byte[128];
 
                 #endregion
 
