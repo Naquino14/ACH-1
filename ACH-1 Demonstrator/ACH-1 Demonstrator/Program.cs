@@ -39,6 +39,19 @@ namespace ACH_1_Demonstrator
                             Console.WriteLine($"\nFNK Length: {FNK.Length}");
                         }
                         break;
+                    case "-testFNKFilestream":
+                        using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
+                        using (ACH1 ach1 = new ACH1(ACH1.InitType.stream))
+                        {
+                            Console.WriteLine();
+                            if (ach1.GetFNK(fs, out byte[] FNK))
+                                foreach (byte byt in FNK)
+                                    Console.Write(byt.ToString("X"));
+                            else
+                                Console.WriteLine("Epic Fail!");
+                            Console.WriteLine($"\nFNK Length: {FNK.Length}");
+                        }
+                            break;
                     case "-testFNKbyte[]":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.bytes))
                         {
@@ -68,6 +81,17 @@ namespace ACH_1_Demonstrator
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.stream))
                             foreach (byte byt in ach1.ComputeHash(fs))
                                 Console.Write(byt.ToString("X"));
+                        break;
+                    case "-testFNKStream":
+                        using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
+                        using (ACH1 ach1 = new ACH1(ACH1.InitType.stream))
+                        {
+                            ach1.GetFNK(fs, out byte[] FNK);
+                            foreach (byte byt in FNK)
+                                Console.WriteLine(byt.ToString("X"));
+                            Console.WriteLine($"\nFNK Length: {FNK.Length}");
+                        }
+
                         break;
                     case "-textfromfile":
                         ; // read text, parse as byte[] and feed into ACH1
