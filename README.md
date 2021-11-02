@@ -22,27 +22,25 @@ ACH-1 Implements IDIsposable, meaning it can be used in a `using` statement or b
 > Computes a hash using text input.
 * InitType.bytes
 > Computes a hash using byte[] input.
+* InputType.stream
 
 ## ACH1.ComputeHash()
 ### Overloads:
 `ComputeHash(object)` where object is a type of `byte[]` or `string` and uses the method specified in the constructor.
 > Returns a 1024 byte hash using ACH-1.
 
-`ComputeHash(object)` where object is a type of `byte[]` or `string` and uses the method specified in the constructor. The second parameter byte[] is for an alternate File Name Key seed.
+`ComputeHash(object, byte[])` where object is a type of `byte[]` or `string` and uses the method specified in the constructor. The second parameter byte[] is for an alternate File Name Key seed.
 > Returns a 1024 byte hash using ACH-1.
 
 ## ACH1.GetFNK()
-### Overloads:
 `GetFNK(object, out byte[])` where object is a type of `byte[]` or `string` and uses the method specified in the constructor.
 > Returns a 128 byte File Name Key.
 
 ## ACH1.OverrideMode()
-### Overloads:
 `OverrideMode(InitType)`
 > Changes the hash generation method used by the current instance of ACH1.
 
 ## ACH1.Clear()
-### Overloads:
 `Clear()`
 > Forcfully clears larger fields in the current instance of ACH1.
 ***
