@@ -71,7 +71,6 @@ namespace ACH_1_Demonstrator
                                 Console.Write(byt.ToString("X"));
                         break;
                     case "-text":
-                        ;
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.text))
                             foreach (byte byt in ach1.ComputeHash(args[1]))
                                 Console.Write(byt.ToString("X"));

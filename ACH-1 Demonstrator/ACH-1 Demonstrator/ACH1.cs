@@ -13,6 +13,7 @@ namespace ACH_1_Demonstrator
         #region variables
 
         public InitType initType;
+        private InitType prevInitType;
         private bool disposedValue;
 
         private bool computeSetupFlag = true;
@@ -20,7 +21,7 @@ namespace ACH_1_Demonstrator
         private byte[] prevBlock;
         private byte[] block;
 
-
+        private bool rehashFlag = false;
 
         private byte[] FNK = new byte[128];
 
@@ -35,6 +36,11 @@ namespace ACH_1_Demonstrator
         private readonly int brs1Index = 380, // block rotation sample index
             brs2Index = 932,
             brs3Index = 4;
+
+        private readonly int i1rsc1 = 50, // expirimental iteration n rotational seeding constant n
+            i1rsc2 = 98,
+            i1rsc3 = 63;
+
 
         private readonly int readCount = 448;
 
@@ -177,25 +183,34 @@ namespace ACH_1_Demonstrator
                 #region getting the next main subblock
 
                 computeFlag = false;
-                (int fullBlocks, int fileLength) seqBrInfo = (0, 0);
 
                 if (pathFlag) // case of a file, get input
                 {
-                    seqBrInfo = InitSeqBR(input);
                     read = SeqBR(input, computationIteration, out block);
                     computeFlag = !(read < readCount); // true if the computation isnt finished
                 } else
                 {
                     int targetIndex = readCount * computationIteration;
+                    int targetLength;
                     switch (initType)
                     {
                         case InitType.bytes:
-                            Array.Copy((byte[])input, targetIndex, block, targetIndex, readCount);
-                            computeFlag = !(block.Length < readCount);
+                            if (((byte[])input).Length < readCount)
+                                targetLength = ((byte[])input).Length;
+                            else
+                                targetLength = readCount;
+                            Array.Copy((byte[])input, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
+                            computeFlag = block.Length < readCount;
                         break;
                         case InitType.text:
-                            Array.Copy(Encoding.ASCII.GetBytes((string)input), targetIndex, block, targetIndex, readCount);
-                        break;
+                            byte[] inputBytes = Encoding.UTF8.GetBytes((string)input);
+                            if (inputBytes.Length < readCount)
+                                targetLength = inputBytes.Length;
+                            else
+                                targetLength = readCount;
+                            Array.Copy(inputBytes, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
+                            computeFlag = !(block.Length < readCount);
+                            break;
                         case InitType.stream:
                             read = SeqSR(input, computationIteration, out block);
                             computeFlag = !(read < readCount);
@@ -235,6 +250,28 @@ namespace ACH_1_Demonstrator
                 block = RotLeft(block, block[brs2Index]);
                 BlockJump(block);
                 block = RotRight(block, block[brs3Index]);
+
+                #region EXPIRIMENTAL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // objective: smaller blocks dont mix as good as larger blocks.
+                // to solove this im going to try to expiriment with more seeding at lower levels
+
+                // if this doesnt work, im gonna try hashing the hash
+
+                if (computationIteration == 1)
+                {
+                    BlockSpike(block);
+                    block = RotLeft(block, i1rsc1);
+                    BlockJump(block);
+                    block = RotRight(block, i1rsc2);
+                    BlockSpike(block);
+                    BlockJump(block);
+                    block = RotLeft(block, i1rsc3);
+                    BlockJump(block);
+                    block = RotRight(block, i1rsc1 + i1rsc2);
+                    BlockSpike(block);
+                }
+                
+                #endregion
 
                 #endregion
 
@@ -303,7 +340,23 @@ namespace ACH_1_Demonstrator
 
             #endregion
 
+            #region EXPIRIMENTAL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // rehash if final CI is 1
+
+            if (computationIteration == 1 && !rehashFlag)
+            {
+                Console.WriteLine("CI is 1, rehashing.");
+                rehashFlag = true;
+                prevInitType = initType;
+                OverrideMode(InitType.bytes);
+                ComputeHash(prevBlock, FNK);
+                Console.WriteLine("Finished rehashing");
+            }
+
+            #endregion
+
             Console.WriteLine("Finished hashing");
+
             return prevBlock;
         }
 
@@ -460,7 +513,7 @@ namespace ACH_1_Demonstrator
                     try
                     { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
                     catch (ArgumentOutOfRangeException u)
-                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, input.ToString().ToCharArray().Length); }
+                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, ((string)input).ToCharArray().Length); }
                     catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
                     if (byteNameB1.Length < 64)
                     {
@@ -572,9 +625,6 @@ namespace ACH_1_Demonstrator
             FNK = AddArray(byteNameB1, byteNameB2);
             return true;
         }
-
-        private (int fullBlocks, int fileLength) InitSeqBR(object input)
-        { return ((int)new FileInfo((string)input).Length / readCount, (int)new FileInfo((string)input).Length); }
 
         private int SeqBR(object input, int computeIteration, out byte[] readBytes) // sequential bytereader
         {
