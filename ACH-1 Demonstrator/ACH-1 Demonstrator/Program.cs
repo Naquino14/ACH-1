@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Diagnostics;
 
 namespace ACH_1_Demonstrator
 {
@@ -67,16 +68,26 @@ namespace ACH_1_Demonstrator
                         break;
                     case "-file":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.file))
-                            foreach (byte byt in ach1.ComputeHash(args[1]))
-                                Console.Write(byt.ToString("X"));
+                        {
+                            var timer = new Stopwatch();
+                            timer.Start();
+                            var res = ach1.ComputeHash(args[1]);
+                            timer.Stop();
+                            foreach (var byt in res)
+                                Console.WriteLine(byt.ToString("X"));
+                            Console.WriteLine($"\nHash length: {res.Length}. Input Length: {args[1].Length} bytes | Elapsed time: {timer.Elapsed.ToString(@"m\:ss\.fff")}");
+                        }
                         break;
                     case "-text":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.text))
                         {
+                            var timer = new Stopwatch();
+                            timer.Start();
                             var res = ach1.ComputeHash(args[1]);
-                            foreach (byte byt in res)
+                            timer.Stop();
+                            foreach (var byt in res)
                                 Console.Write(byt.ToString("X"));
-                            Console.WriteLine($"\nHash Length: {res.Length}");
+                            Console.WriteLine($"\nHash length: {res.Length}. Input Length: {args[1].Length} bytes | Elapsed time: {timer.Elapsed.ToString(@"m\:ss\.fff")}");
                         }
                         break;
                     case "-stream":
@@ -104,14 +115,17 @@ namespace ACH_1_Demonstrator
                     case "-bytes":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.bytes))
                         {
+                            var timer = new Stopwatch();
                             byte[] in_ = new byte[] { 0x65, 0x23, 0x4A, 0xFF, 0xFF, 0xD6, 0x63, 0x11, 0x6F, 0xC9, 0x54, 0xD5 };
                             foreach (var byt in in_)
                                 Console.Write(byt.ToString("X"));
                             Console.WriteLine();
+                            timer.Start();
                             var res = ach1.ComputeHash(in_);
+                            timer.Stop();
                             foreach (var byt in res)
                                 Console.Write(byt.ToString("X"));
-                            Console.WriteLine($"\nHash length: {res.Length}");
+                            Console.WriteLine($"\nHash length: {res.Length}. Input Length: {in_.Length} bytes | Elapsed time: {timer.Elapsed.ToString(@"m\:ss\.fff")}");
                         }
                         break;
                     case "-sha": // just looking at how the function is commented on.
@@ -127,6 +141,7 @@ namespace ACH_1_Demonstrator
             { Console.WriteLine(ex.ToString()); }
 
             #endregion
+
 
             #region test programs
 
