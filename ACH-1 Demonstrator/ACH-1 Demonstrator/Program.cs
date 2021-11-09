@@ -72,8 +72,12 @@ namespace ACH_1_Demonstrator
                         break;
                     case "-text":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.text))
-                            foreach (byte byt in ach1.ComputeHash(args[1]))
+                        {
+                            var res = ach1.ComputeHash(args[1]);
+                            foreach (byte byt in res)
                                 Console.Write(byt.ToString("X"));
+                            Console.WriteLine($"\nHash Length: {res.Length}");
+                        }
                         break;
                     case "-stream":
                         using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
@@ -99,7 +103,16 @@ namespace ACH_1_Demonstrator
                         break;
                     case "-bytes":
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.bytes))
-                            ; // parse args[1] as byte[] and 
+                        {
+                            byte[] in_ = new byte[] { 0x65, 0x23, 0x4A, 0xFF, 0xFF, 0xD6, 0x63, 0x11, 0x6F, 0xC9, 0x54, 0xD5 };
+                            foreach (var byt in in_)
+                                Console.Write(byt.ToString("X"));
+                            Console.WriteLine();
+                            var res = ach1.ComputeHash(in_);
+                            foreach (var byt in res)
+                                Console.Write(byt.ToString("X"));
+                            Console.WriteLine($"\nHash length: {res.Length}");
+                        }
                         break;
                     case "-sha": // just looking at how the function is commented on.
                         using (SHA1 sha1 = SHA1.Create())

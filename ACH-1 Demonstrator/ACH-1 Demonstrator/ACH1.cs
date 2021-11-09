@@ -190,22 +190,23 @@ namespace ACH_1_Demonstrator
                     computeFlag = !(read < readCount); // true if the computation isnt finished
                 } else
                 {
-                    int targetIndex = readCount * computationIteration;
-                    int targetLength;
+                    int targetIndex = readCount * computationIteration, targetLength, toRead;
                     switch (initType)
                     {
                         case InitType.bytes:
-                            if (((byte[])input).Length < readCount)
-                                targetLength = ((byte[])input).Length;
+                            toRead = ((byte[])input).Length - readCount * computationIteration;
+                            if (toRead < readCount)
+                                targetLength = toRead;
                             else
                                 targetLength = readCount;
                             Array.Copy((byte[])input, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
-                            computeFlag = block.Length < readCount;
+                            computeFlag = !(block.Length < readCount);
                         break;
                         case InitType.text:
+                            toRead = ((string)input).Length - readCount * computationIteration;
                             byte[] inputBytes = Encoding.UTF8.GetBytes((string)input);
-                            if (inputBytes.Length < readCount)
-                                targetLength = inputBytes.Length;
+                            if (toRead < readCount)
+                                targetLength = toRead;
                             else
                                 targetLength = readCount;
                             Array.Copy(inputBytes, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
