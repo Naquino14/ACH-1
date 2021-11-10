@@ -25,8 +25,6 @@ namespace ACH_1_Demonstrator
 
         private byte[] FNK = new byte[128];
 
-        private bool pathFlag = false;
-
         #region constants
 
         private readonly byte FNKPad = 0xAA,
@@ -85,6 +83,9 @@ namespace ACH_1_Demonstrator
         {
             tString,
             tByte,
+            tStream,
+            tFileStream,
+            tMemoryStream,
             notFound
         }
 
@@ -147,8 +148,6 @@ namespace ACH_1_Demonstrator
                 var match = TypeMatch(input);
                 if (!match.success)
                     throw new ArgumentException($"Parameter input has an invalid type {input.GetType()}.");
-                if (initType == InitType.file)
-                    pathFlag = true;
 
                 #endregion
 
@@ -184,40 +183,38 @@ namespace ACH_1_Demonstrator
 
                 computeFlag = false;
 
-                if (pathFlag) // case of a file, get input
+                int targetIndex, targetLength, toRead;
+                switch (initType)
                 {
-                    read = SeqBR(input, computationIteration, out block);
-                    computeFlag = !(read < readCount); // true if the computation isnt finished
-                } else
-                {
-                    int targetIndex = readCount * computationIteration, targetLength, toRead;
-                    switch (initType)
-                    {
-                        case InitType.bytes:
-                            toRead = ((byte[])input).Length - readCount * computationIteration;
-                            if (toRead < readCount)
-                                targetLength = toRead;
-                            else
-                                targetLength = readCount;
-                            Array.Copy((byte[])input, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
-                            computeFlag = !(block.Length < readCount);
+                    case InitType.file:
+                        read = SeqBR(input, computationIteration, out block);
+                        computeFlag = !(read < readCount); // true if the computation isnt finished
                         break;
-                        case InitType.text:
-                            toRead = ((string)input).Length - readCount * computationIteration;
-                            byte[] inputBytes = Encoding.UTF8.GetBytes((string)input);
-                            if (toRead < readCount)
-                                targetLength = toRead;
-                            else
-                                targetLength = readCount;
-                            Array.Copy(inputBytes, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
-                            computeFlag = !(block.Length < readCount);
-                            break;
-                        case InitType.stream:
-                            read = SeqSR(input, computationIteration, out block);
-                            computeFlag = !(read < readCount);
-                            break;
-                    }
-
+                    case InitType.bytes:
+                        targetIndex = readCount * computationIteration;
+                        toRead = ((byte[])input).Length - readCount * computationIteration;
+                        if (toRead < readCount)
+                            targetLength = toRead;
+                        else
+                            targetLength = readCount;
+                        Array.Copy((byte[])input, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
+                        computeFlag = !(block.Length < readCount);
+                        break;
+                    case InitType.text:
+                        targetIndex = readCount * computationIteration;
+                        toRead = ((string)input).Length - readCount * computationIteration;
+                        byte[] inputBytes = Encoding.UTF8.GetBytes((string)input);
+                        if (toRead < readCount)
+                            targetLength = toRead;
+                        else
+                            targetLength = readCount;
+                        Array.Copy(inputBytes, targetIndex, block ??= new byte[targetLength], 0, readCount - (readCount - targetLength));
+                        computeFlag = !(block.Length < readCount);
+                        break;
+                    case InitType.stream: // seqsr not orking properly
+                        read = SeqSR(input, computationIteration, out block);
+                        computeFlag = !(read < readCount);
+                        break;
                 }
 
                 #endregion
@@ -368,14 +365,18 @@ namespace ACH_1_Demonstrator
         private (bool success, Type type) TypeMatch(object input)
         {
             System.Type inputType = input.GetType();
-            if (input == null)
-                return (false, Type.notFound);
-            if (inputType != typeof(string) && inputType != typeof(byte[]))
-                return (false, Type.notFound);
             if (inputType == typeof(string))
                 return (true, Type.tString);
-            else
+            else if (inputType == typeof(byte[]))
                 return (true, Type.tByte);
+            else if (inputType == typeof(Stream))
+                return (true, Type.tStream);
+            else if (inputType == typeof(FileStream))
+                return (true, Type.tFileStream);
+            else if (inputType == typeof(MemoryStream))
+                return (true, Type.tMemoryStream);
+            else
+                return (false, Type.notFound);
         }
 
         /// <summary>
@@ -434,128 +435,154 @@ namespace ACH_1_Demonstrator
             byte[] pad = new byte[] { FNKPad };
 
             path = null;
-            switch (initType)
+
+            #region InitType.file and InitType.stream
+
+            // i used to use a case-switch here, but im tryna optimize, so this isnt going to function properly in a case-switch
+            if (initType == InitType.file || initType == InitType.stream)
             {
-                #region InitType.file
-
-                case InitType.file:
-                    //if (byteNameB1.Length < 64)
-                    //{
-                    //    byteNameB1 = Encoding.ASCII.GetBytes((string)fileNameSample);
-                    //    r = 64 - byteNameB1.Length;
-                    //    pad = CreatePadArray(FNKPad, r);
-                    //    byteNameB1 = AddArray(byteNameB1, pad);
-
-                    //    pad = null;
-                    //    r = 0;
-                    //}
-                    //else if (byteNameB1.Length != 64) // TODO: fix this bc i dont think its working
-                    //{
-                    //    byteNameB1 = Encoding.ASCII.GetBytes((string)fileNameSample);
-                    //    int fullBlocks = byteNameB1.Length / 64;
-                    //    int seek = 64 * fullBlocks;
-                    //    byte[] bnr = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
-
-                    //    byte[][] bnb1sbs = new byte[fullBlocks][];
-                    //    for (int i = 0; i <= (fullBlocks - 1); i++)
-                    //        bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
-
-                    //    byteNameB1 = bnb1sbs[0];
-                    //    foreach (byte[] subblock in bnb1sbs)
-                    //    {
-                    //        bool s1fo = true;
-                    //        if (!s1fo)
-                    //            byteNameB1 = OTPArray(byteNameB1, subblock);
-                    //        else
-                    //            s1fo = false;
-                    //    }
-
-                    //    bnr = null;
-                    //    seek = 0;
-                    //    fullBlocks = 0;
-                    //    bnb1sbs = null;
-                    //}
-                    //FNKOTPPad = CreatePadArray(FNKPad, 64);
-                    //byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
-                    //FNK = AddArray(byteNameB1, byteNameB2);
-                    //return true;
-
-                    return FNKSubFunc(byteNameB1, byteNameB2, fileNameSample, r, pad, typeof(string), out FNKOTPPad, out FNK);
-                #endregion
-
-                #region InitType.stream (all types)
-
-                case InitType.stream:
-                    if (input.GetType() == typeof(FileStream))
-                        return FNKSubFunc(byteNameB1, byteNameB2, fileNameSample, r, pad, typeof(FileStream), out FNKOTPPad, out FNK);
-                    else if (input.GetType() == typeof(Stream))
-                    {
-                        throw new NotImplementedException();
-                        byteNameB1 = (byte[])fileNameSample;
-                        FNK = null;
-                        return false;
-                    } 
-                    else if (input.GetType() == typeof(MemoryStream))
-                    {
-                        throw new NotImplementedException();
-                        FNK = null;
-                        return false;
-                    }
-                    break;
-
-                #endregion
-
-                #region InitType.text
-
-                case InitType.text:
-                    byteNameB1 = new byte[64];
-                    byteNameB2 = new byte[byteNameB1.Length];
-
-                    try
-                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
-                    catch (ArgumentOutOfRangeException u)
-                    { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, ((string)input).ToCharArray().Length); }
-                    catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
+                if (input.GetType() == typeof(FileStream) || input.GetType() == typeof(string))
+                {
+                    byteNameB1 = Encoding.ASCII.GetBytes((string)fileNameSample);
                     if (byteNameB1.Length < 64)
                     {
-                        pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
+                        r = 64 - byteNameB1.Length;
+                        pad = CreatePadArray(FNKPad, r);
                         byteNameB1 = AddArray(byteNameB1, pad);
+
+                        pad = null;
+                        r = 0;
                     }
+                    else if (byteNameB1.Length != 64) // TODO: fix this bc i dont think its working 
+                    {
+                        int fullBlocks = byteNameB1.Length / 64;
+                        int seek = 64 * fullBlocks;
+                        byte[] bnr = FCArray(byteNameB1, seek, 64 - (((fullBlocks + 1) * 64) - byteNameB1.Length));
 
-                    pad = null;
+                        byte[][] bnb1sbs = new byte[fullBlocks][];
+                        for (int i = 0; i <= (fullBlocks - 1); i++)
+                            bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
 
+                        byteNameB1 = bnb1sbs[0];
+                        foreach (byte[] subblock in bnb1sbs)
+                        {
+                            bool s1fo = true;
+                            if (!s1fo)
+                                byteNameB1 = OTPArray(byteNameB1, subblock);
+                            else
+                                s1fo = false;
+                        } 
+
+                        bnr = null;
+                        seek = 0;
+                        fullBlocks = 0;
+                        bnb1sbs = null;
+                    }
                     FNKOTPPad = CreatePadArray(FNKPad, 64);
                     byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
                     FNK = AddArray(byteNameB1, byteNameB2);
                     return true;
+                }
+
+                #region Stream provided
+
+                else if (input.GetType() == typeof(Stream))
+                {
+                    throw new NotImplementedException();
+                }
 
                 #endregion
 
-                #region InitType.bytes
+                #region memorystream provided
 
-                case InitType.bytes:
-                    byteNameB1 = new byte[64];
-                    byteNameB2 = new byte[byteNameB1.Length];
+                else if (input.GetType() == typeof(MemoryStream))
+                {
+                    throw new NotImplementedException();
+                }
 
+                #endregion
+
+                #region fallout breakpoint
+
+                else // fallout breakpoint
+                {
                     try
-                    { byteNameB1 = FCArray((byte[])input, 0, 64);
-                    } catch (ArgumentException u)
-                    { byteNameB1 = FCArray((byte[])input, 0, ((byte[])input).Length); }
-                    if (byteNameB1.Length < 64)
                     {
-                        pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
-                        byteNameB1 = AddArray(byteNameB1, pad);
+                        throw new ArgumentException($"Breakpoint reached for the current initialiation type and input provided. Could not compute FNK, potential type mismatch" +
+                            $"\n(does your ACH-1 initialization type match your object input? You can change the ACH-1 initialization type with OverrideMode(InitType))" +
+                            $"\nCurrent initialization type: {this.initType} | Current input type: {input.GetType()}.");
                     }
+                    catch (Exception ex)
+                    { Console.WriteLine(ex.ToString()); }
+                    finally
+                    { FNK = null; }
+                    return false;
+                }
 
-                    pad = null;
+                #endregion
 
-                    FNKOTPPad = CreatePadArray(FNKPad, 64);
-                    byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
-                    FNK = AddArray(byteNameB1, byteNameB2);
-                    return true;
-
-                    #endregion
             }
+
+            #endregion
+
+            #region InitType.text
+
+            else if (initType == InitType.text)
+            {
+                byteNameB1 = new byte[64];
+                byteNameB2 = new byte[byteNameB1.Length];
+
+                try
+                { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, 64); }
+                catch (ArgumentOutOfRangeException u)
+                { byteNameB1 = Encoding.ASCII.GetBytes((string)input, 0, ((string)input).ToCharArray().Length); }
+                catch (Exception ex) { Console.WriteLine($"Unexcpected exception. {ex}"); }
+                if (byteNameB1.Length < 64)
+                {
+                    pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
+                    byteNameB1 = AddArray(byteNameB1, pad);
+                }
+
+                pad = null;
+
+                FNKOTPPad = CreatePadArray(FNKPad, 64);
+                byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                FNK = AddArray(byteNameB1, byteNameB2);
+                return true;
+            }
+
+            #endregion
+
+            #region InitType.bytes
+
+            else if (initType == InitType.bytes)
+            {
+                byteNameB1 = new byte[64];
+                byteNameB2 = new byte[byteNameB1.Length];
+
+                try
+                {
+                    byteNameB1 = FCArray((byte[])input, 0, 64);
+                }
+                catch (ArgumentException u)
+                { byteNameB1 = FCArray((byte[])input, 0, ((byte[])input).Length); }
+                if (byteNameB1.Length < 64)
+                {
+                    pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
+                    byteNameB1 = AddArray(byteNameB1, pad);
+                }
+
+                pad = null;
+
+                FNKOTPPad = CreatePadArray(FNKPad, 64);
+                byteNameB2 = OTPArray(byteNameB1, FNKOTPPad);
+                FNK = AddArray(byteNameB1, byteNameB2);
+                return true;
+            }
+
+            #endregion
+
+            #region fallout breakpoint
 
             try
             {
@@ -567,25 +594,13 @@ namespace ACH_1_Demonstrator
             finally
             { FNK = null; }
             return false;
+
+            #endregion
         }
 
-        private bool FNKSubFunc(byte[] byteNameB1, byte[] byteNameB2, object fileNameSample, int r, byte[] pad, System.Type typ, out byte[] FNKOTPPad, out byte[] FNK  )
+        private bool FNKSubFunc(byte[] byteNameB1, byte[] byteNameB2, byte[] input, int r, byte[] pad, byte[] FNKOTPPad, out byte[] FNK)
         {
-            Console.WriteLine(typ);
-            // typematch because type variables arent real for some reason
-            if (typ == typeof(string))
-                byteNameB1 = Encoding.ASCII.GetBytes((string)fileNameSample);
-            else if (typ == typeof(FileStream))
-            {
-                var sometype = (FileStream)fileNameSample;
-                Console.WriteLine(sometype.Name.GetType());
-                //name = name.Split('\\')[((FileStream)fileNameSample).Name.Split('\\').Length - 1].Split('.')[0];
-                //byteNameB1 = Encoding.ASCII.GetBytes(name);
-                throw new Exception("breakpoint");
-            }
-            else
-                throw new ArgumentException();
-
+            byteNameB1 = input;
 
             if (byteNameB1.Length < 64)
             {
@@ -627,6 +642,7 @@ namespace ACH_1_Demonstrator
             return true;
         }
 
+
         private int SeqBR(object input, int computeIteration, out byte[] readBytes) // sequential bytereader
         {
             readBytes = null;
@@ -650,17 +666,17 @@ namespace ACH_1_Demonstrator
             if (inputType == typeof(Stream))
             { 
                 ((Stream)input).Position = computeIteration * this.readCount; 
-                readCount = ((Stream)input).Read(readBytes ??= new byte[this.readCount], 0, this.readCount); 
+                readCount = ((Stream)input).Read(readBytes ??= new byte[this.readCount], 0, this.readCount - (this.readCount - (this.readCount * computeIteration))); 
             }
             else if (inputType == typeof(FileStream))
             { 
                 ((FileStream)input).Position = computeIteration * this.readCount; 
-                readCount = ((FileStream)input).Read(readBytes ??= new byte[this.readCount], computeIteration * this.readCount, this.readCount); 
+                readCount = ((FileStream)input).Read(readBytes ??= new byte[this.readCount], computeIteration * this.readCount, this.readCount - (this.readCount - (this.readCount * computeIteration))); 
             }
             else if (inputType == typeof(MemoryStream))
             { 
                 ((MemoryStream)input).Position = computeIteration * this.readCount; 
-                readCount = ((MemoryStream)input).Read(readBytes ??= new byte[this.readCount], computeIteration * this.readCount, this.readCount); 
+                readCount = ((MemoryStream)input).Read(readBytes ??= new byte[this.readCount], computeIteration * this.readCount, this.readCount - (this.readCount - (this.readCount * computeIteration))); 
             }
             else
                 throw new ArgumentException($"Parameter input has an invalid type {input.GetType()}.");

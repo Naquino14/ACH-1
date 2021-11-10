@@ -74,7 +74,7 @@ namespace ACH_1_Demonstrator
                             var res = ach1.ComputeHash(args[1]);
                             timer.Stop();
                             foreach (var byt in res)
-                                Console.WriteLine(byt.ToString("X"));
+                                Console.Write(byt.ToString("X"));
                             Console.WriteLine($"\nHash length: {res.Length}. Input Length: {args[1].Length} bytes | Elapsed time: {timer.Elapsed.ToString(@"m\:ss\.fff")}");
                         }
                         break;
@@ -93,8 +93,15 @@ namespace ACH_1_Demonstrator
                     case "-stream":
                         using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
                         using (ACH1 ach1 = new ACH1(ACH1.InitType.stream))
-                            foreach (byte byt in ach1.ComputeHash(fs))
+                        {
+                            var timer = new Stopwatch();
+                            timer.Start();
+                            var res = ach1.ComputeHash(fs);
+                            timer.Stop();
+                            foreach (byte byt in res)
                                 Console.Write(byt.ToString("X"));
+                            Console.WriteLine($"\nHash length: {res.Length}. Input Length: {args[1].Length} bytes | Elapsed time: {timer.Elapsed.ToString(@"m\:ss\.fff")}");
+                        }
                         break;
                     case "-testFNKStream":
                         using (System.IO.FileStream fs = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
