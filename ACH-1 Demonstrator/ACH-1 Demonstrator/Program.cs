@@ -6,7 +6,7 @@ using System.IO;
 
 namespace ACH_1_Demonstrator
 {
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
