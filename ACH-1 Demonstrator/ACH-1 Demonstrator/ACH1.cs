@@ -466,9 +466,9 @@ namespace ACH_1_Demonstrator
                             bnb1sbs[i] = FCArray(byteNameB1, (i * 64), 64);
 
                         byteNameB1 = bnb1sbs[0];
+                        bool s1fo = true;
                         foreach (byte[] subblock in bnb1sbs)
                         {
-                            bool s1fo = true;
                             if (!s1fo)
                                 byteNameB1 = OTPArray(byteNameB1, subblock);
                             else
