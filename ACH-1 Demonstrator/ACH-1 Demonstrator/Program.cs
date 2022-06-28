@@ -3,10 +3,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using ADIS;
 
 namespace ACH_1_Demonstrator
 {
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
