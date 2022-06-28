@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using ADIS;
 
 namespace ACH_1_Demonstrator
 {

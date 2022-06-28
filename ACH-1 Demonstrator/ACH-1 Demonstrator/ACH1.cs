@@ -1,12 +1,15 @@
 ﻿// Copyright 2021 Nathaniel Aquino, All rights reserved.
 // Aquino Cryptographic Hash version 1
+
+//#define ACH_DEBUG
+
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Runtime;
 
-namespace ACH_1_Demonstrator
+namespace ADIS
 {
     public class ACH1 : IDisposable
     {
@@ -162,6 +165,18 @@ namespace ACH_1_Demonstrator
                     FNK = GENFNK;
                     GENFNK = null;
                 }
+                else
+                {
+                    if (FNKO.Length > 128)
+                        FNK = BlockComp(128, FNKO);
+                    else if (FNKO.Length < 128)
+                    {
+                        var pad = CreatePadArray(FNKPad, 128 - FNKO.Length);
+                        FNK = AddArray(FNKO, pad);
+                    }
+                    else
+                        FNK = FNKO;
+                }
 
                 computeSetupFlag = false;
 
@@ -177,8 +192,9 @@ namespace ACH_1_Demonstrator
             int read;
             while (computeFlag)
             {
+                #if ACH_DEBUG
                 Console.Write($"\rIteration: {computationIteration}");
-
+                #endif
                 #region getting the next main subblock
 
                 computeFlag = false;
@@ -343,18 +359,24 @@ namespace ACH_1_Demonstrator
 
             if (computationIteration == 1 && !rehashFlag)
             {
+                #if ACH_DEBUG
                 Console.WriteLine("\nCI is 1, rehashing.");
+                #endif
                 rehashFlag = true;
                 prevInitType = initType;
                 OverrideMode(InitType.bytes);
                 ComputeHash(prevBlock, FNK);
+                #if ACH_DEBUG
                 Console.WriteLine("Finished rehashing");
+                #endif
             }
 
             #endregion
 
+            #if ACH_DEBUG
             Console.WriteLine("\nFinished hashing");
-
+            #endif
+            initType = prevInitType;
             return prevBlock;
         }
 
@@ -441,7 +463,7 @@ namespace ACH_1_Demonstrator
             // i used to use a case-switch here, but im tryna optimize, so this isnt going to function properly in a case-switch
             if (initType == InitType.file || initType == InitType.stream)
             {
-                #region FileStream or Path string provided
+            #region FileStream or Path string provided
 
                 if (input.GetType() == typeof(FileStream) || input.GetType() == typeof(string))
                 {
@@ -486,18 +508,18 @@ namespace ACH_1_Demonstrator
                     return true;
                 }
 
-                #endregion
+            #endregion
 
-                #region Stream provided
+            #region Stream provided
 
                 else if (input.GetType() == typeof(Stream))
                 {
                     throw new NotImplementedException("Streams should not be here because I am dumb lole.");
                 }
 
-                #endregion
+            #endregion
 
-                #region MemoryStream provided
+            #region MemoryStream provided
 
                 else if (input.GetType() == typeof(MemoryStream))
                 {
@@ -517,9 +539,9 @@ namespace ACH_1_Demonstrator
                     return true;
                 }
 
-                #endregion
+            #endregion
 
-                #region fallout breakpoint
+            #region fallout breakpoint
 
                 else // fallout breakpoint
                 {
@@ -536,11 +558,11 @@ namespace ACH_1_Demonstrator
                     return false;
                 }
 
-                #endregion
+            #endregion
 
             }
 
-            #endregion
+#endregion
 
             #region InitType.text
 
@@ -582,11 +604,14 @@ namespace ACH_1_Demonstrator
                     byteNameB1 = FCArray((byte[])input, 0, 64);
                 }
                 catch (ArgumentException u)
-                { 
+                {
                     byteNameB1 = FCArray((byte[])input, 0, ((byte[])input).Length);
                     pad = CreatePadArray(FNKPad, (64 - byteNameB1.Length));
                     byteNameB1 = AddArray(byteNameB1, pad);
                 }
+                catch (InvalidCastException ex)
+                { throw new InvalidCastException(ex.Message + $". Is the inputted object a type of {initType}?"); }
+
 
                 pad = null;
 
@@ -817,6 +842,40 @@ namespace ACH_1_Demonstrator
             return result;
         }
 
+        /// <summary>
+        /// Block Compressor.
+        /// </summary>
+        /// <param name="s">Size. (Must be non-zero)</param>
+        /// <param name="a">Block.</param>
+        /// <returns></returns>
+        private byte[] BlockComp(int s, byte[] a)
+        {
+            var o = new byte[s];
+
+            if (a.Length < s)
+            {
+                int r = s - a.Length;
+                var pad = CreatePadArray(0x0, r);
+                o = AddArray(a, pad);
+            }
+            else if (a.Length != s)
+            {
+                var fb = a.Length / s;
+                var resSbs = new byte[fb][];
+                for (var i = 0; i <= (fb - 1); i++)
+                    resSbs[i] = FCArray(a, i * s, s);
+
+                bool s1fo = true;
+                o = resSbs[0];
+                foreach (var sb in resSbs)
+                    if (!s1fo)
+                        o = OTPArray(o, sb);
+                    else
+                        s1fo = false;
+            }
+            return o;
+        }
+
         private byte[] RotRight(byte[] a, int amount)
         { return a.Skip(a.Length - amount).Concat(a.Take(a.Length - amount)).ToArray(); }
 
@@ -827,11 +886,11 @@ namespace ACH_1_Demonstrator
 
         #endregion
 
-        #region events
+#region events
 
 
 
-        #endregion
+#endregion
 
     }
 
