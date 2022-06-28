@@ -1,6 +1,8 @@
 # ACH-1
 ### Aquino Cryptographic Hash version 1
 
+# [Formal Documentation](https://docs.google.com/document/d/19B7Unr3mffJFw2N45glPAaO1Hhi7gqSasgeKUU46_Fk/edit?usp=sharing)
+
 ACH-1 is a 1024 byte (8192 bit) hashing function made from scratch using file names and samples from text as seeding. 
 
 **DO NOT** expect this project to be of the most practical use or fast. It is mainly an expiriment and a potential tool for any of my future projects.
